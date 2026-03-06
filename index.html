@@ -1,0 +1,4232 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <title>競技かるた 暗記訓練</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #1a120a;
+        font-family:
+          "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+        color: #f5ede0;
+      }
+
+      /* ======= SCREENS ======= */
+      .screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .screen.active {
+        display: flex;
+      }
+
+      /* ======= SETUP SCREEN ======= */
+      #screen-setup {
+        background: linear-gradient(160deg, #1a120a, #2d1f10);
+        overflow-y: auto;
+      }
+      #setup-box {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 220, 150, 0.25);
+        border-radius: 16px;
+        padding: 20px 24px;
+        max-width: 520px;
+        width: 94%;
+        text-align: center;
+        backdrop-filter: blur(4px);
+        margin: 16px auto;
+      }
+      #setup-box h1 {
+        margin: 0 0 2px;
+        font-size: clamp(18px, 3.5vw, 24px);
+        color: #f0d89a;
+        letter-spacing: 0.15em;
+        text-shadow: 0 0 20px rgba(240, 200, 100, 0.4);
+      }
+      #setup-box .subtitle {
+        font-size: 11px;
+        color: #b89a6a;
+        margin: 0 0 16px;
+        letter-spacing: 0.1em;
+      }
+      .pattern-label {
+        font-size: 10px;
+        color: #c8a870;
+        letter-spacing: 0.12em;
+        margin-bottom: 8px;
+        text-align: left;
+      }
+      .pattern-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .pattern-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 12px;
+        border: 1.5px solid rgba(180, 140, 60, 0.25);
+        border-radius: 9px;
+        cursor: pointer;
+        transition: all 0.18s;
+        background: rgba(0, 0, 0, 0.25);
+        text-align: left;
+      }
+      .pattern-card:active,
+      .pattern-card:hover {
+        border-color: rgba(200, 160, 80, 0.5);
+        background: rgba(60, 36, 8, 0.4);
+      }
+      .pattern-card.active {
+        border-color: #c8900a;
+        background: rgba(120, 74, 16, 0.45);
+        box-shadow: 0 0 10px rgba(200, 144, 10, 0.25);
+      }
+      .pattern-card.active .pattern-title {
+        color: #f5e0a0;
+      }
+      .pc-visual {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+      .pc-field {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .pc-row {
+        display: flex;
+        gap: 1px;
+      }
+      .pc-dot {
+        width: 5px;
+        height: 7px;
+        border-radius: 1px;
+      }
+      .pc-dot.on {
+        background: #c8900a;
+      }
+      .pc-dot.off {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .pc-dot.hand {
+        background: #3a9a3a;
+      }
+      .pc-divider {
+        height: 2px;
+      }
+      .pattern-text {
+        flex: 1;
+      }
+      .pattern-title {
+        font-size: 12px;
+        color: #d4b87a;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+      }
+      .pattern-desc {
+        font-size: 10px;
+        color: #907050;
+        line-height: 1.4;
+      }
+      #btn-start-game {
+        width: 100%;
+        margin-top: 4px;
+        padding: 12px;
+        background: linear-gradient(135deg, #8b1a1a, #b52020);
+        border: none;
+        border-radius: 10px;
+        color: #f5e8c8;
+        font-size: 15px;
+        font-family: inherit;
+        letter-spacing: 0.15em;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 15px rgba(150, 20, 20, 0.4);
+      }
+      #btn-start-game:active {
+        transform: scale(0.97);
+      }
+      #audio-warning {
+        font-size: 10px;
+        color: #a07040;
+        margin-top: 6px;
+        display: none;
+      }
+
+      /* ======= GAME SCREEN ======= */
+      #screen-game {
+        background: #2a1a08;
+        padding: 0;
+        justify-content: flex-start;
+        align-items: stretch;
+      }
+      #game-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        background: #1a1008;
+        border-bottom: 1px solid #4a3010;
+        min-height: 54px;
+        flex-shrink: 0;
+      }
+      #timer-display {
+        font-size: clamp(18px, 3.5vw, 26px);
+        color: #f0c060;
+        letter-spacing: 0.1em;
+        font-variant-numeric: tabular-nums;
+        min-width: 88px;
+      }
+      #poem-indicator {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+      }
+      #poem-indicator-static {
+        font-size: 13px;
+        color: #c0a060;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        text-align: center;
+      }
+      #poem-indicator-scroll {
+        width: 160px;
+        overflow: hidden;
+        position: relative;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      #poem-scroll-inner {
+        position: absolute;
+        white-space: nowrap;
+        top: 0;
+        left: 0;
+        font-size: 16px;
+        color: #e0c070;
+        animation-name: poem-marquee;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        line-height: 24px;
+      }
+      @keyframes poem-marquee {
+        from { transform: translateX(144px); }
+        to   { transform: translateX(-100%); }
+      }
+      #score-display {
+        font-size: 15px;
+        color: #d4c080;
+        text-align: right;
+        min-width: 130px;
+      }
+      #board-area {
+        flex: 1;
+        display: flex;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: relative;
+      }
+      #board {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        gap: 0;
+        padding: 4px 6px;
+      }
+      .field-wrap {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .field-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 4px;
+        flex-shrink: 0;
+      }
+      .field-name {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: #b89060;
+      }
+      .field-remaining {
+        font-size: 10px;
+        color: #907050;
+      }
+      .field-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        align-items: center;
+      }
+      .card-row {
+        display: flex;
+        gap: 3px;
+        flex-wrap: nowrap;
+      }
+      #field-self .card-row {
+        justify-content: flex-start;
+      }
+      #field-enemy .card-row {
+        justify-content: flex-start;
+      }
+      #field-enemy .card-slot {
+        transform: rotate(180deg);
+      }
+      .field-divider {
+        height: 10px;
+        flex-shrink: 0;
+      }
+
+      /* ======= CARD SLOTS ======= */
+      .card-slot {
+        position: relative;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .card-slot.empty-slot {
+        border: 1.5px dashed rgba(180, 140, 60, 0.3);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .card-slot.empty-slot:hover {
+        border-color: rgba(200, 160, 80, 0.6);
+        background: rgba(200, 160, 80, 0.05);
+      }
+      .card-slot.drag-over {
+        border: 2px solid #f0c060 !important;
+        background: rgba(240, 192, 96, 0.15) !important;
+      }
+      .card-inner {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.45s ease;
+        border-radius: 4px;
+      }
+      .card-inner.face-down {
+        transform: rotateY(180deg);
+      }
+      .card-face,
+      .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .card-back {
+        transform: rotateY(180deg);
+      }
+      .card-face img,
+      .card-back img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        pointer-events: none;
+      }
+      .card-slot.correct-glow .card-inner {
+        box-shadow: 0 0 12px 4px rgba(60, 220, 80, 0.8);
+      }
+      .card-slot.wrong-glow .card-inner {
+        box-shadow: 0 0 12px 4px rgba(220, 50, 50, 0.8);
+      }
+      .card-slot.missed-glow .card-inner {
+        box-shadow: 0 0 12px 4px rgba(220, 160, 20, 0.8);
+      }
+      .card-slot.foul-glow .card-inner {
+        box-shadow: 0 0 12px 4px rgba(180, 60, 220, 0.8);
+      }
+      .card-slot.fading {
+        opacity: 0;
+        transition: opacity 0.4s;
+      }
+      .card-slot.removing {
+        animation: cardRemove 0.35s ease forwards;
+      }
+      @keyframes cardRemove {
+        to {
+          opacity: 0;
+          transform: scale(0.85);
+        }
+      }
+
+      /* Pool card drag ghost */
+      #drag-ghost {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.85;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+        display: none;
+      }
+      #drag-ghost img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* ======= BOTTOM CONTROLS ======= */
+      #game-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        background: #1a1008;
+        border-top: 1px solid #4a3010;
+        flex-shrink: 0;
+        min-height: 58px;
+        gap: 12px;
+      }
+      #game-footer button {
+        padding: 10px 22px;
+        border: 1.5px solid;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.06em;
+      }
+      #btn-end-memorize {
+        background: #7a1a10;
+        border-color: #c02010;
+        color: #f5e8c0;
+      }
+      #btn-end-memorize:active {
+        transform: scale(0.96);
+      }
+      #btn-skip-poem {
+        background: #3a2808;
+        border-color: #7a5020;
+        color: #c0a060;
+        display: none;
+      }
+      #btn-skip-poem:active {
+        transform: scale(0.96);
+      }
+      #play-info {
+        font-size: 17px;
+        color: #f0d060;
+        font-weight: bold;
+        display: none;
+        letter-spacing: 0.06em;
+      }
+      #arrange-progress-footer {
+        font-size: 13px;
+        color: #b89060;
+        display: none;
+      }
+      #btn-start-memorize {
+        background: linear-gradient(135deg, #1a5a10, #2a8015);
+        border-color: #3aaa20;
+        color: #d4f0c0;
+        display: none;
+        font-size: 16px;
+        padding: 10px 26px;
+      }
+      #btn-start-memorize:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+      #btn-start-memorize:not(:disabled):active {
+        transform: scale(0.96);
+      }
+      #arrange-timer-row {
+        display: none;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: #b89060;
+      }
+      #arrange-timer-row.visible {
+        display: flex;
+      }
+      .arr-preset {
+        padding: 4px 8px;
+        border: 1.5px solid #6b4a20;
+        background: rgba(0, 0, 0, 0.3);
+        color: #d4b87a;
+        border-radius: 5px;
+        font-size: 11px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .arr-preset.active {
+        background: #7a4a10;
+        border-color: #c8900a;
+        color: #f5e0a0;
+      }
+      #arr-custom-min {
+        width: 36px;
+        padding: 3px 4px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1.5px solid #6b4a20;
+        color: #f5e0a0;
+        border-radius: 5px;
+        font-size: 11px;
+        text-align: center;
+        font-family: inherit;
+      }
+      #arr-timer-label {
+        color: #907050;
+        white-space: nowrap;
+      }
+
+      /* ======= CARD POOL (arrange) ======= */
+      #card-pool-area {
+        flex-shrink: 0;
+        background: #140e04;
+        border-top: 1px solid #4a3010;
+        padding: 6px 8px;
+        overflow: hidden;
+        display: none;
+        height: 80px;
+      }
+      #card-pool-area.visible {
+        display: block;
+      }
+      #pool-label {
+        font-size: 10px;
+        color: #806040;
+        letter-spacing: 0.1em;
+        margin-bottom: 4px;
+      }
+      #pool-cards {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        height: 58px;
+        align-items: center;
+        scrollbar-width: thin;
+        scrollbar-color: #5a3a10 #1a0e04;
+        padding-bottom: 2px;
+      }
+      #pool-cards::-webkit-scrollbar {
+        height: 4px;
+      }
+      #pool-cards::-webkit-scrollbar-track {
+        background: #1a0e04;
+      }
+      #pool-cards::-webkit-scrollbar-thumb {
+        background: #5a3a10;
+        border-radius: 2px;
+      }
+      .pool-card {
+        width: 38px;
+        height: 56px;
+        flex-shrink: 0;
+        border-radius: 3px;
+        overflow: hidden;
+        cursor: grab;
+        cursor: -webkit-grab;
+        transition: transform 0.15s;
+        border: 1.5px solid #4a3010;
+        position: relative;
+      }
+      .pool-card:hover {
+        border-color: #a07030;
+        transform: scale(1.05);
+      }
+      .pool-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        pointer-events: none;
+      }
+      .pool-card .pool-num {
+        position: absolute;
+        bottom: 1px;
+        right: 2px;
+        font-size: 8px;
+        color: rgba(255, 220, 150, 0.85);
+        text-shadow: 0 0 3px #000;
+        line-height: 1;
+      }
+
+      /* ======= MODAL ======= */
+      #modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 500;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      #modal-overlay.visible {
+        display: flex;
+      }
+      #modal-box {
+        background: #1e1408;
+        border: 1px solid #6a4a18;
+        border-radius: 12px;
+        width: min(480px, 90vw);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+      }
+      #modal-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #4a3010;
+        flex-shrink: 0;
+      }
+      #modal-header h3 {
+        margin: 0;
+        flex: 1;
+        font-size: 14px;
+        color: #f0c060;
+        letter-spacing: 0.1em;
+      }
+      #modal-search {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid #6a4a18;
+        color: #f0e0c0;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+      }
+      #modal-search::placeholder {
+        color: #806040;
+      }
+      #modal-close {
+        width: 28px;
+        height: 28px;
+        background: rgba(120, 30, 20, 0.6);
+        border: 1px solid #8b3020;
+        color: #f0c0a0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      #modal-grid {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+        gap: 5px;
+        scrollbar-width: thin;
+        scrollbar-color: #5a3a10 #1a0e04;
+      }
+      #modal-grid::-webkit-scrollbar {
+        width: 6px;
+      }
+      #modal-grid::-webkit-scrollbar-track {
+        background: #1a0e04;
+      }
+      #modal-grid::-webkit-scrollbar-thumb {
+        background: #5a3a10;
+        border-radius: 3px;
+      }
+      .modal-kimari-btn {
+        padding: 7px 4px;
+        background: rgba(80, 50, 10, 0.5);
+        border: 1.5px solid #6a4a18;
+        border-radius: 6px;
+        color: #f0d890;
+        font-size: 13px;
+        font-family: inherit;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .modal-kimari-btn:hover,
+      .modal-kimari-btn:active {
+        background: #7a4a10;
+        border-color: #c8900a;
+        color: #fff8e0;
+        transform: scale(1.04);
+      }
+      .modal-kimari-btn.hidden-card {
+        display: none;
+      }
+      .modal-card {
+        display: none;
+      }
+      #modal-empty {
+        text-align: center;
+        color: #806040;
+        font-size: 13px;
+        padding: 30px;
+        grid-column: 1/-1;
+        display: none;
+      }
+
+      /* ======= NOTIFICATION ======= */
+      #notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        background: rgba(0, 0, 0, 0.88);
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-size: 18px;
+        letter-spacing: 0.12em;
+        z-index: 800;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        border: 2px solid transparent;
+        text-align: center;
+        min-width: 160px;
+      }
+      #notification.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      #notification.correct {
+        border-color: #3aaa30;
+        color: #80ff80;
+        background: rgba(20, 60, 20, 0.92);
+      }
+      #notification.wrong {
+        border-color: #cc3030;
+        color: #ff8080;
+        background: rgba(60, 20, 20, 0.92);
+      }
+      #notification.missed {
+        border-color: #cc9020;
+        color: #ffcc60;
+        background: rgba(60, 40, 0, 0.92);
+      }
+      #notification.foul {
+        border-color: #9a20cc;
+        color: #e080ff;
+        background: rgba(40, 10, 50, 0.92);
+      }
+      #notification .n-sub {
+        font-size: 12px;
+        margin-top: 6px;
+        opacity: 0.8;
+      }
+
+      /* ======= RESULTS SCREEN ======= */
+      #screen-results {
+        background: linear-gradient(160deg, #1a120a, #2d1f10);
+        overflow: hidden;
+      }
+      #results-box {
+        width: min(700px, 98vw);
+        height: 92vh;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 220, 150, 0.2);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      #results-header {
+        padding: 10px 16px;
+        border-bottom: 1px solid #4a3010;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      #results-header h2 {
+        margin: 0 0 2px;
+        font-size: 18px;
+        color: #f0d89a;
+        letter-spacing: 0.15em;
+      }
+      #results-pattern-info {
+        font-size: 10px;
+        color: #7a5a30;
+        margin-bottom: 6px;
+        letter-spacing: 0.06em;
+      }
+      #results-score-summary {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        font-size: 13px;
+      }
+      .rs-item {
+        text-align: center;
+      }
+      .rs-num {
+        font-size: 22px;
+        font-weight: bold;
+      }
+      .rs-num.correct {
+        color: #60d060;
+      }
+      .rs-num.wrong {
+        color: #e06060;
+      }
+      .rs-num.missed {
+        color: #e0a030;
+      }
+      .rs-num.foul {
+        color: #c060e0;
+      }
+      .rs-label {
+        font-size: 10px;
+        color: #907050;
+      }
+      #rs-score-big {
+        font-size: 36px;
+        font-weight: bold;
+        color: #f0c060;
+        letter-spacing: 0.08em;
+        margin-top: 6px;
+        text-shadow: 0 0 16px rgba(240, 192, 60, 0.4);
+      }
+      #rs-time-stats {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+        font-size: 11px;
+        margin: 4px 0 6px;
+      }
+      .rs-tstat { display: flex; gap: 4px; align-items: center; }
+      .rs-tstat-label { color: #706040; }
+      .rs-tstat-val { color: #c0a060; }
+      #results-board-wrap {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #5a3a10 #1a0e04;
+      }
+      #results-board-wrap::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      #results-board-wrap::-webkit-scrollbar-thumb {
+        background: #5a3a10;
+        border-radius: 2px;
+      }
+      #board-result-canvas {
+        display: block;
+        border-radius: 6px;
+      }
+      #results-footer {
+        padding: 10px 14px;
+        border-top: 1px solid #4a3010;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      #results-footer button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1.5px solid;
+        transition: all 0.2s;
+        letter-spacing: 0.06em;
+      }
+      #btn-save-img {
+        background: #1a3a6a;
+        border-color: #3060aa;
+        color: #a0c8f0;
+      }
+      #btn-share-x {
+        background: #1a1a30;
+        border-color: #4060a0;
+        color: #8090d0;
+      }
+      #btn-share-line {
+        background: #0a4a0a;
+        border-color: #208020;
+        color: #80d080;
+      }
+      #btn-play-again {
+        background: #5a1a08;
+        border-color: #a03010;
+        color: #f0c090;
+      }
+      #results-footer button:active {
+        transform: scale(0.96);
+      }
+
+      /* ======= RESULT IMAGE PREVIEW ======= */
+      #img-preview-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 900;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #img-preview-overlay.visible {
+        display: flex;
+      }
+      #img-preview-overlay canvas {
+        max-width: 90vw;
+        max-height: 70vh;
+        border-radius: 8px;
+      }
+      #img-preview-overlay p {
+        font-size: 12px;
+        color: #b09070;
+      }
+      #img-preview-close {
+        padding: 8px 24px;
+        background: #5a1a08;
+        border: 1.5px solid #a03010;
+        color: #f0c090;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      /* ======= RESPONSIVE ======= */
+      @media (max-height: 500px) {
+        #game-header {
+          min-height: 40px;
+          padding: 4px 10px;
+        }
+        #game-footer {
+          min-height: 44px;
+          padding: 4px 10px;
+        }
+        #card-pool-area {
+          height: 66px;
+        }
+        #pool-cards {
+          height: 46px;
+        }
+        .pool-card {
+          width: 30px;
+          height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- =================== SETUP SCREEN =================== -->
+    <div id="screen-setup" class="screen active">
+      <div id="setup-box">
+        <h1>競技かるた</h1>
+        <p class="subtitle">暗記訓練</p>
+
+        <div class="pattern-label">配置パターンを選択</div>
+        <div class="pattern-list">
+          <!-- Pattern D: enemy random aligned, self manual (DEFAULT) -->
+          <div class="pattern-card active" id="pat-D" data-pattern="D">
+            <div class="pc-visual">
+              <div class="pc-field" style="transform: rotate(180deg)">
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+              </div>
+              <div class="pc-divider"></div>
+              <div class="pc-field">
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pattern-text">
+              <div class="pattern-title">敵陣ランダム（端寄せ）＋自陣手動</div>
+              <div class="pattern-desc">
+                敵陣はランダム端寄せ、自陣は25枚を手動で指定
+              </div>
+            </div>
+          </div>
+
+          <!-- Pattern C: enemy random scattered, self manual -->
+          <div class="pattern-card" id="pat-C" data-pattern="C">
+            <div class="pc-visual">
+              <div class="pc-field" style="transform: rotate(180deg)">
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                </div>
+              </div>
+              <div class="pc-divider"></div>
+              <div class="pc-field">
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pattern-text">
+              <div class="pattern-title">敵陣ランダム（ちらし）＋自陣手動</div>
+              <div class="pattern-desc">
+                敵陣はランダム配置、自陣は25枚を手動で指定
+              </div>
+            </div>
+          </div>
+
+          <!-- Pattern E: all manual -->
+          <div class="pattern-card" id="pat-E" data-pattern="E">
+            <div class="pc-visual">
+              <div class="pc-field" style="transform: rotate(180deg)">
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+              </div>
+              <div class="pc-divider"></div>
+              <div class="pc-field">
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                  <div class="pc-dot hand"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pattern-text">
+              <div class="pattern-title">全て手動（自由配置）</div>
+              <div class="pattern-desc">
+                100枚から自由に選んで配置<br />50枚未満でも暗記を開始できます
+              </div>
+            </div>
+          </div>
+
+          <!-- Pattern B: both random aligned -->
+          <div class="pattern-card" id="pat-B" data-pattern="B">
+            <div class="pc-visual">
+              <div class="pc-field" style="transform: rotate(180deg)">
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+              </div>
+              <div class="pc-divider"></div>
+              <div class="pc-field">
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pattern-text">
+              <div class="pattern-title">両陣ランダム・左右端寄せ</div>
+              <div class="pattern-desc">
+                敵陣・自陣ともにランダム配置（端寄せ）<br />確認・入れ替え画面を経て暗記を開始
+              </div>
+            </div>
+          </div>
+
+          <!-- Pattern A: both random scattered -->
+          <div class="pattern-card" id="pat-A" data-pattern="A">
+            <div class="pc-visual">
+              <div class="pc-field" style="transform: rotate(180deg)">
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+              </div>
+              <div class="pc-divider"></div>
+              <div class="pc-field">
+                <div class="pc-row">
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                </div>
+                <div class="pc-row">
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot on"></div>
+                  <div class="pc-dot off"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pattern-text">
+              <div class="pattern-title">両陣ランダム・ちらし取り</div>
+              <div class="pattern-desc">
+                敵陣・自陣ともにランダム配置（散らばり）<br />確認・入れ替え画面を経て暗記を開始
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-start-game">配置画面へ →</button>
+        <div id="audio-warning">
+          ※ お使いのブラウザはOGG音声に対応していない可能性があります
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== GAME SCREEN =================== -->
+    <div id="screen-game" class="screen">
+      <!-- Header -->
+      <div id="game-header">
+        <div id="timer-display">--:--</div>
+        <div id="poem-indicator">
+          <div id="poem-indicator-static"></div>
+          <div id="poem-indicator-scroll" style="display:none"><span id="poem-scroll-inner"></span></div>
+        </div>
+        <div id="score-display"></div>
+      </div>
+
+      <!-- Board -->
+      <div id="board-area">
+        <div id="board">
+          <!-- Enemy field (敵陣) on top, cards rotated 180° -->
+          <div class="field-wrap" id="field-enemy">
+            <div class="field-label-row">
+              <span class="field-remaining" id="enemy-remaining"></span>
+              <span class="field-name">敵　陣</span>
+            </div>
+            <div class="field-rows" id="enemy-rows">
+              <div class="card-row" id="enemy-row-0"></div>
+              <div class="card-row" id="enemy-row-1"></div>
+              <div class="card-row" id="enemy-row-2"></div>
+            </div>
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- Self field (自陣) on bottom -->
+          <div class="field-wrap" id="field-self">
+            <div class="field-label-row">
+              <span class="field-name">自　陣</span>
+              <span class="field-remaining" id="self-remaining"></span>
+            </div>
+            <div class="field-rows" id="self-rows">
+              <div class="card-row" id="self-row-0"></div>
+              <div class="card-row" id="self-row-1"></div>
+              <div class="card-row" id="self-row-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card pool (arrange mode) -->
+      <div id="card-pool-area">
+        <div id="pool-label">未配置の札（タップまたはドラッグで配置）</div>
+        <div id="pool-cards"></div>
+      </div>
+
+      <!-- Footer controls -->
+      <div id="game-footer">
+        <div id="arrange-progress-footer">0枚配置済み</div>
+        <div id="arrange-timer-row">
+          <span id="arr-timer-label">暗記時間:</span>
+          <button class="arr-preset active" data-min="15">15分</button>
+          <button class="arr-preset" data-min="10">10分</button>
+          <button class="arr-preset" data-min="5">5分</button>
+          <input
+            type="number"
+            id="arr-custom-min"
+            min="1"
+            max="60"
+            placeholder="分"
+          />
+          <span>分</span>
+        </div>
+        <button id="btn-start-memorize" disabled>▶ 暗記を開始</button>
+        <button id="btn-end-memorize">暗記終了</button>
+        <div id="play-info"></div>
+        <button id="btn-skip-poem">読み飛ばし</button>
+      </div>
+    </div>
+
+    <!-- =================== RESULTS SCREEN =================== -->
+    <div id="screen-results" class="screen">
+      <div id="results-box">
+        <div id="results-header">
+          <h2>結果</h2>
+          <div id="results-pattern-info"></div>
+          <div id="results-score-summary">
+            <div class="rs-item">
+              <div class="rs-num correct" id="rs-correct">0</div>
+              <div class="rs-label">正解</div>
+            </div>
+            <div class="rs-item">
+              <div class="rs-num wrong" id="rs-wrong">0</div>
+              <div class="rs-label">ミス</div>
+            </div>
+            <div class="rs-item">
+              <div class="rs-num missed" id="rs-missed">0</div>
+              <div class="rs-label">見逃し</div>
+            </div>
+            <div class="rs-item">
+              <div class="rs-num foul" id="rs-foul">0</div>
+              <div class="rs-label">お手つき</div>
+            </div>
+          </div>
+          <div id="rs-score-big">0点</div>
+          <div id="rs-time-stats">
+            <span class="rs-tstat"><span class="rs-tstat-label">配置時間</span><span class="rs-tstat-val" id="rs-arrange-time">-</span></span>
+            <span class="rs-tstat"><span class="rs-tstat-label">暗記時間</span><span class="rs-tstat-val" id="rs-memorize-time">-</span></span>
+            <span class="rs-tstat"><span class="rs-tstat-label">反応時間合計</span><span class="rs-tstat-val" id="rs-tap-time">-</span></span>
+          </div>
+        </div>
+        <div id="results-board-wrap">
+          <canvas id="board-result-canvas"></canvas>
+        </div>
+        <div id="results-footer">
+          <button id="btn-save-img">📷 画像保存</button>
+          <button id="btn-share-x">𝕏 でシェア</button>
+          <button id="btn-share-line">LINE でシェア</button>
+          <button id="btn-play-again">もう一度</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== READ MODE MODAL =================== -->
+    <div
+      id="readmode-overlay"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 600;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: #1e1408;
+          border: 1px solid #6a4a18;
+          border-radius: 14px;
+          padding: 28px 32px;
+          text-align: center;
+          max-width: 360px;
+          width: 90%;
+        "
+      >
+        <div style="font-size: 16px; color: #f0c060; letter-spacing: 0.1em; margin-bottom: 4px">
+          暗記終了！
+        </div>
+        <div style="font-size: 12px; color: #907050; margin-bottom: 18px">
+          読み方を選んでください
+        </div>
+
+        <!-- 詰めオプション -->
+        <label
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #c0a060;
+            margin-bottom: 18px;
+            cursor: pointer;
+            user-select: none;
+          "
+        >
+          <input
+            type="checkbox"
+            id="compact-toggle"
+            style="width: 16px; height: 16px; accent-color: #c0a060; cursor: pointer;"
+          />
+          出札の位置を端に詰める
+        </label>
+
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <!-- 100枚全て（デフォルト・目立つ） -->
+          <button
+            id="btn-readmode-all"
+            style="
+              padding: 14px 20px;
+              background: linear-gradient(135deg, #1a4a8a, #2060c0);
+              border: 2px solid #4080e0;
+              color: #d0e8ff;
+              border-radius: 9px;
+              font-family: inherit;
+              font-size: 15px;
+              letter-spacing: 0.08em;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            ★ 100枚全て読む（空札含む）
+          </button>
+          <!-- 出札のみ（サブ） -->
+          <button
+            id="btn-readmode-placed"
+            style="
+              padding: 11px 20px;
+              background: linear-gradient(135deg, #2a2010, #3a2e18);
+              border: 1.5px solid #6a5028;
+              color: #a09060;
+              border-radius: 9px;
+              font-family: inherit;
+              font-size: 13px;
+              letter-spacing: 0.08em;
+              cursor: pointer;
+            "
+          >
+            出札のみ読む（配置した札）
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== CARD SELECT MODAL =================== -->
+    <div id="modal-overlay">
+      <div id="modal-box">
+        <div id="modal-header">
+          <h3>札を選ぶ</h3>
+          <input
+            type="search"
+            id="modal-search"
+            placeholder="番号・かな検索..."
+          />
+          <button id="modal-close">✕</button>
+        </div>
+        <div id="modal-grid"></div>
+        <div id="modal-empty">該当する札がありません</div>
+      </div>
+    </div>
+
+    <!-- =================== NOTIFICATION =================== -->
+    <div id="notification">
+      <div id="notif-text"></div>
+      <div class="n-sub" id="notif-sub"></div>
+    </div>
+
+    <!-- =================== DRAG GHOST =================== -->
+    <div id="drag-ghost"><img id="drag-ghost-img" src="" alt="" /></div>
+
+    <!-- =================== IMAGE PREVIEW =================== -->
+    <div id="img-preview-overlay">
+      <canvas id="result-canvas"></canvas>
+      <p>長押しで画像を保存できます（iOS） / 右クリックで保存（PC）</p>
+      <button id="img-preview-close">閉じる</button>
+    </div>
+
+    <script>
+      "use strict";
+
+      // ======================================================
+      // POEM DATA (百人一首)
+      // ======================================================
+      const POEMS = [
+        null, // index 0 = 序歌
+        {
+          id: 1,
+          kimari: "あきの",
+          text: "あきのたのかりほのいほのとまをあらみわがころもではつゆにぬれつつ",
+        },
+        {
+          id: 2,
+          kimari: "はるす",
+          text: "はるすぎてなつきにけらししろたへのころもほすてふあまのかぐやま",
+        },
+        {
+          id: 3,
+          kimari: "あし",
+          text: "あしびきのやまどりのをのしだりをのながながしよをひとりかもねむ",
+        },
+        {
+          id: 4,
+          kimari: "たご",
+          text: "たごのうらにうちいでてみればしろたへのふじのたかねにゆきはふりつつ",
+        },
+        {
+          id: 5,
+          kimari: "おく",
+          text: "おくやまにまぢかきくればしかぞなくあきのゆふぐれ",
+        },
+        {
+          id: 6,
+          kimari: "かさ",
+          text: "かささぎのわたせるはしにおくしものしろきをみればよぞふけにける",
+        },
+        {
+          id: 7,
+          kimari: "あまの",
+          text: "あまのはらふりさけみればかすがなるみかさのやまにいでしつきかも",
+        },
+        {
+          id: 8,
+          kimari: "わがい",
+          text: "わがいほはみやこのたつみしかぞすむよをうぢやまとひとはいふなり",
+        },
+        {
+          id: 9,
+          kimari: "はなの",
+          text: "はなのいろはうつりにけりないたづらにわがみよにふるながめせしまに",
+        },
+        {
+          id: 10,
+          kimari: "これ",
+          text: "これやこのゆくもかへるもわかれてはしるもしらぬもあふさかのせき",
+        },
+        {
+          id: 11,
+          kimari: "わたのはらや",
+          text: "わたのはらやそしまかけてこぎいでぬとひとにはつげよあまのつりぶね",
+        },
+        {
+          id: 12,
+          kimari: "あまつ",
+          text: "あまつかぜくものかよひぢふきとぢよをとめのすがたしばしとどめむ",
+        },
+        {
+          id: 13,
+          kimari: "つく",
+          text: "つくばねのみねよりおつるみなのがわこひぞつもりてふちとなりぬる",
+        },
+        {
+          id: 14,
+          kimari: "みち",
+          text: "みちのくのしのぶもぢずりたれゆゑにみだれそめにしわれならなくに",
+        },
+        {
+          id: 15,
+          kimari: "きみがためは",
+          text: "きみがためはるののにいでてわかなつむわがころもでにゆきはふりつつ",
+        },
+        {
+          id: 16,
+          kimari: "たち",
+          text: "たちわかれいなばのやまのみねにおふるまつとしきかばいまかへりこむ",
+        },
+        {
+          id: 17,
+          kimari: "ちは",
+          text: "ちはやぶるかみよもきかずたつたがはからくれなゐにみづくくるとは",
+        },
+        {
+          id: 18,
+          kimari: "す",
+          text: "すみのえのきしによるなみよるさへやゆめのかよひぢひとめよくらむ",
+        },
+        {
+          id: 19,
+          kimari: "なにわが",
+          text: "なにはがたみじかきあしのふしのまもあはでこのよをすぐしてよとや",
+        },
+        {
+          id: 20,
+          kimari: "わび",
+          text: "わびぬればいまはたおなじなにはなるみをつくしてもあはむとぞおもふ",
+        },
+        {
+          id: 21,
+          kimari: "いまこ",
+          text: "いまこむといひしばかりにながつきのありあけのつきをまちいでつるかな",
+        },
+        {
+          id: 22,
+          kimari: "ふ",
+          text: "ふくからにあきのくさきのしをるればむべやまかぜをあらしといふらむ",
+        },
+        {
+          id: 23,
+          kimari: "つき",
+          text: "つきみればちぢにものこそかなしけれわがみひとつのあきにはあらねど",
+        },
+        {
+          id: 24,
+          kimari: "この",
+          text: "このたびはぬさもとりあへずたむけやまもみぢのにしきかみのまにまに",
+        },
+        {
+          id: 25,
+          kimari: "なにし",
+          text: "なにしおはばあふさかやまのさねかづらひとにしられでくるよしもがな",
+        },
+        {
+          id: 26,
+          kimari: "おぐ",
+          text: "おぐらやまみねのもみぢばこころあらばいまひとたびのみゆきまたなむ",
+        },
+        {
+          id: 27,
+          kimari: "みかの",
+          text: "みかのはらわきてながるるいづみがはいつみきとてかこひしかるらむ",
+        },
+        {
+          id: 28,
+          kimari: "やまざ",
+          text: "やまざとはふゆぞさびしさまさりけるひとめもくさもかれぬとおもへば",
+        },
+        {
+          id: 29,
+          kimari: "こころあ",
+          text: "こころあてにをらばやをらむはつしものおきまどはせるしらぎくのはな",
+        },
+        {
+          id: 30,
+          kimari: "ありあ",
+          text: "ありあけのつれなくみえしわかれよりあかつきばかりうきものはなし",
+        },
+        {
+          id: 31,
+          kimari: "あさぼらけあ",
+          text: "あさぼらけありあけのつきとみるまでによしののさとにふれるしらゆき",
+        },
+        {
+          id: 32,
+          kimari: "やまが",
+          text: "やまがはにかぜのかけたるしがらみはながれもあへぬもみぢなりけり",
+        },
+        {
+          id: 33,
+          kimari: "ひさ",
+          text: "ひさかたのひかりのどけきはるのひにしづこころなくはなのちるらむ",
+        },
+        {
+          id: 34,
+          kimari: "たれ",
+          text: "たれをかもはるたちばなのにほひかなむかしのひとのそでのかをせる",
+        },
+        {
+          id: 35,
+          kimari: "ひとは",
+          text: "ひとはいさこころもしらずふるさとははなぞむかしのかににほひける",
+        },
+        {
+          id: 36,
+          kimari: "なつ",
+          text: "なつのよはまだよひながらあけぬるをくものいづこにつきやどるらむ",
+        },
+        {
+          id: 37,
+          kimari: "しら",
+          text: "しらつゆにかぜのふきしくあきののはつらぬきとめぬたまぞちりける",
+        },
+        {
+          id: 38,
+          kimari: "わすら",
+          text: "わすらるるみをばおもはずちかひてしひとのいのちのをしくもあるかな",
+        },
+        {
+          id: 39,
+          kimari: "あさぢ",
+          text: "あさぢふのをののしのはらしのぶれどあまりてなどかひとのこひしき",
+        },
+        {
+          id: 40,
+          kimari: "しの",
+          text: "しのぶれどいろにいでにけりわがこひはものやおもふとひとのとふまで",
+        },
+        {
+          id: 41,
+          kimari: "こい",
+          text: "こいすてふわがなはまだきたちにけりひとしれずこそおもひそめしか",
+        },
+        {
+          id: 42,
+          kimari: "ちぎりき",
+          text: "ちぎりきなかたみにそでをしぼりつつすゑのまつやまなみこさじとは",
+        },
+        {
+          id: 43,
+          kimari: "あい",
+          text: "あいみてののちのこころにくらぶればむかしはものをおもはざりけり",
+        },
+        {
+          id: 44,
+          kimari: "おおこ",
+          text: "おおことのたえてしなくはなかなかにひとをもみをもひらましものを",
+        },
+        {
+          id: 45,
+          kimari: "あはれ",
+          text: "あはれともいふべきひとはおもほえでみのいたづらになりぬべきかな",
+        },
+        {
+          id: 46,
+          kimari: "ゆら",
+          text: "ゆらのとをわたるふなびとかぢをたえゆくへもしらぬこひのみちかな",
+        },
+        {
+          id: 47,
+          kimari: "やへ",
+          text: "やへむぐらしげれるやどのさびしきにひとこそみえねあきはきにけり",
+        },
+        {
+          id: 48,
+          kimari: "かぜを",
+          text: "かぜをいたみいはうつなみのおのれのみくだけてものをおもふころかな",
+        },
+        {
+          id: 49,
+          kimari: "みかき",
+          text: "みかきもりゑじのたくひのよるはもえひるはきえつつものをこそおもへ",
+        },
+        {
+          id: 50,
+          kimari: "きみがためを",
+          text: "きみがためをしからざりしのちのよもいまはをしきはひとのいのちなりけり",
+        },
+        {
+          id: 51,
+          kimari: "かく",
+          text: "かくとだにえやはいぶきのさしもぐささしもしらじなもゆるおもひを",
+        },
+        {
+          id: 52,
+          kimari: "あけ",
+          text: "あけぬればくるるものとはしりながらなほうらめしきあさぼらけかな",
+        },
+        {
+          id: 53,
+          kimari: "なげき",
+          text: "なげきつつひとりぬるよのあくるまはいかにひさしきものとかはしる",
+        },
+        {
+          id: 54,
+          kimari: "わすれ",
+          text: "わすれじのゆくすゑまではかたければけふをかぎりのいのちともがな",
+        },
+        {
+          id: 55,
+          kimari: "たき",
+          text: "たきのおとはたえてひさしくなりぬれどなこそながれてなほきこえけれ",
+        },
+        {
+          id: 56,
+          kimari: "あらざ",
+          text: "あらざらむこのよのほかのおもひでにいまひとたびのあふこともがな",
+        },
+        {
+          id: 57,
+          kimari: "め",
+          text: "めぐりあひてみしやそれともわかぬまにくもがくれにしよはのつきかな",
+        },
+        {
+          id: 58,
+          kimari: "ありま",
+          text: "ありまやまゐなのささはらかぜふけばいでそよひとをわすれやはする",
+        },
+        {
+          id: 59,
+          kimari: "やす",
+          text: "やすらはでねなましものをさよふけてかたぶくまでのつきをみしかな",
+        },
+        {
+          id: 60,
+          kimari: "おおえ",
+          text: "おおえやまいくののみちのとほければまだふみもみずあまのはしだて",
+        },
+        {
+          id: 61,
+          kimari: "いに",
+          text: "いにしへのならのみやこのやへざくらけふここのへににほひぬるかな",
+        },
+        {
+          id: 62,
+          kimari: "よを",
+          text: "よをこめてとりのそらねははかるともよにあふさかのせきはゆるさじ",
+        },
+        {
+          id: 63,
+          kimari: "いまは",
+          text: "いまはただおもひたえなむとばかりをひとづてならでいふよしもがな",
+        },
+        {
+          id: 64,
+          kimari: "あさぼらけう",
+          text: "あさぼらけうぢのかはぎりたえだえにあらはれわたるせぜのあじろぎ",
+        },
+        {
+          id: 65,
+          kimari: "うら",
+          text: "うらみわびほさぬそでだにあるものをこひにくちなむなこそをしけれ",
+        },
+        {
+          id: 66,
+          kimari: "もろ",
+          text: "もろともにあはれとおもへやまざくらはなよりほかにしるひともなし",
+        },
+        {
+          id: 67,
+          kimari: "はるの",
+          text: "はるのよのゆめばかりなるたまくらにかひなくたたむなこそをしけれ",
+        },
+        {
+          id: 68,
+          kimari: "こころに",
+          text: "こころにもあらでうきよにながらへばこひしかるべきよはのつきかな",
+        },
+        {
+          id: 69,
+          kimari: "あらし",
+          text: "あらしふくみむろのやまのもみぢばはたつたのかはのにしきなりけり",
+        },
+        {
+          id: 70,
+          kimari: "さ",
+          text: "さびしさにやどをたちいでてながむればいづくもおなじあきのゆふぐれ",
+        },
+        {
+          id: 71,
+          kimari: "ゆう",
+          text: "ゆうさればかどたのいなばおとづれてあしのまろやにあきかぜぞふく",
+        },
+        {
+          id: 72,
+          kimari: "おと",
+          text: "おとにきくたかしのはまのあだなみはかけじやそでのぬれもこそすれ",
+        },
+        {
+          id: 73,
+          kimari: "たか",
+          text: "たかさごのをのへのさくらさきにけりとやまのかすみたたずもあらなむ",
+        },
+        {
+          id: 74,
+          kimari: "うか",
+          text: "うかりけるひとをはつせのやまおろしよはげにこそはおもひしらるれ",
+        },
+        {
+          id: 75,
+          kimari: "ちぎりお",
+          text: "ちぎりおきしさせもがつゆをいのちにてあはれことしのあきもいぬめり",
+        },
+        {
+          id: 76,
+          kimari: "わたのはらこ",
+          text: "わたのはらこぎいでてみればひさかたのくもゐにまがふおきつしらなみ",
+        },
+        {
+          id: 77,
+          kimari: "せ",
+          text: "せをはやみいはにせかるるたきがはのわれてもすゑにあはむとぞおもふ",
+        },
+        {
+          id: 78,
+          kimari: "あわじ",
+          text: "あわじしまかよふちどりのなくこゑにいくよねざめぬすまのせきもり",
+        },
+        {
+          id: 79,
+          kimari: "あきか",
+          text: "あきかぜにたなびくくものたえまよりもれいづるつきのかげのさやけさ",
+        },
+        {
+          id: 80,
+          kimari: "ながか",
+          text: "ながからむこころもしらずくろかみのみだれてけさはものをこそおもへ",
+        },
+        {
+          id: 81,
+          kimari: "ほ",
+          text: "ほととぎすなきつるかたをながむればただありあけのつきぞのこれる",
+        },
+        {
+          id: 82,
+          kimari: "おも",
+          text: "おもひわびさてもいのちはあるものをうきにたへぬはなみだなりけり",
+        },
+        {
+          id: 83,
+          kimari: "よのなかよ",
+          text: "よのなかよみちこそなけれおもひいるやまのおくにもしかぞなくなる",
+        },
+        {
+          id: 84,
+          kimari: "ながら",
+          text: "ながらへばまたこのごろやしのばれむうしとみしよぞいまはこひしき",
+        },
+        {
+          id: 85,
+          kimari: "よも",
+          text: "よもすがらものおもふころはあけやらでねやのひまさへつれなかりけり",
+        },
+        {
+          id: 86,
+          kimari: "なげけ",
+          text: "なげけとてつきやはものをおもはするかこちがほなるわがなみだかな",
+        },
+        {
+          id: 87,
+          kimari: "む",
+          text: "むらさめのつゆもまだひぬまきのはにきりたちのぼるあきのゆふぐれ",
+        },
+        {
+          id: 88,
+          kimari: "なにわえ",
+          text: "なにわえのあしのかりねのひとよゆゑみをつくしてやこひわたるべき",
+        },
+        {
+          id: 89,
+          kimari: "たま",
+          text: "たまのをよたえなばたえねながらへばしのぶることのよわりもぞする",
+        },
+        {
+          id: 90,
+          kimari: "みせ",
+          text: "みせばやなをしまのあまのそでだにもぬれにぞぬれしゐろはかはらず",
+        },
+        {
+          id: 91,
+          kimari: "きり",
+          text: "きりぎりすなくやしもよのさむしろにころもかたしきひとりかもねむ",
+        },
+        {
+          id: 92,
+          kimari: "わがそ",
+          text: "わがそではしほひにみえぬおきのいしのひとこそしらねかわくまもなし",
+        },
+        {
+          id: 93,
+          kimari: "よのなかは",
+          text: "よのなかはつねにもがもななぎさこぐあまのをぶねのつなでかなしも",
+        },
+        {
+          id: 94,
+          kimari: "みよ",
+          text: "みよしののやまのあきかぜさよふけてふるさとさむくころもうつなり",
+        },
+        {
+          id: 95,
+          kimari: "おおけ",
+          text: "おおけなくうきよのたみにおほふかなわがたつそまにすみぞめのそで",
+        },
+        {
+          id: 96,
+          kimari: "はなさ",
+          text: "はなさそふあらしのにはのゆきならでふりゆくものはわがみなりけり",
+        },
+        {
+          id: 97,
+          kimari: "こぬ",
+          text: "こぬひとをまつほのうらのゆふなぎにやくやもしほのみにぞわびぬる",
+        },
+        {
+          id: 98,
+          kimari: "かぜそ",
+          text: "かぜそよぐならのおがはのゆふぐれはみそぎぞなつのしるしなりける",
+        },
+        {
+          id: 99,
+          kimari: "ひとも",
+          text: "ひともをしひともひとしもうらめしあぢきなくよをおもふゆゑなり",
+        },
+        {
+          id: 100,
+          kimari: "もも",
+          text: "ももしきやふるきのきばのしのぶにもなほあまりあるむかしなりけり",
+        },
+      ];
+
+      // ======================================================
+      // HELPERS
+      // ======================================================
+      const IMG = (id) => `public/images/torifuda/torifuda_F_${id}.jpeg`;
+      const BACK_IMG = () => `public/images/torifuda/torifuda_B.jpeg`;
+      const AUDIO_URL = (id, part) =>
+        `public/audio/readers/@03-Yamashita/@03-Yamashita_${String(id).padStart(3, "0")}_${part}.ogg`;
+
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      // Row distribution: 16-16-16 = 48 slots per field (25 cards placed, 23 empty)
+      const ROW_SIZES = [16, 16, 16];
+      // slot index → [rowIndex, colIndex]
+      function slotToRowCol(slotIdx) {
+        let count = 0;
+        for (let r = 0; r < ROW_SIZES.length; r++) {
+          if (slotIdx < count + ROW_SIZES[r]) return [r, slotIdx - count];
+          count += ROW_SIZES[r];
+        }
+        const totalSlots = ROW_SIZES.reduce((a, b) => a + b, 0);
+        return [
+          ROW_SIZES.length - 1,
+          slotIdx - (totalSlots - ROW_SIZES[ROW_SIZES.length - 1]),
+        ];
+      }
+
+      // ======================================================
+      // CARD SIZE (responsive)
+      // ======================================================
+      let CARD_W = 50,
+        CARD_H = 75;
+
+      function calcCardSize() {
+        const vw = window.innerWidth,
+          vh = window.innerHeight;
+        const poolH = gameState.phase === "arrange" ? 80 : 0;
+        const headerH = 54,
+          footerH = 58;
+        // Total board area height
+        const boardH = vh - headerH - footerH - poolH - 8; // 8 = board padding top+bottom
+        // Card width from full-width row: (vw - padding - gaps) / 16 cols
+        const byWidth = Math.floor(
+          (vw - 12 - (ROW_SIZES[0] - 1) * 3) / ROW_SIZES[0],
+        );
+        // Card height: fit 6 rows (3 per field) + 2 label rows + divider
+        const labelRows = 2 * 18; // two field label rows
+        const gaps = 2 * (ROW_SIZES.length - 1) * 3; // gap between rows, each field
+        const divider = 10;
+        const cardAreaH = boardH - labelRows - gaps - divider;
+        const totalCardRows = ROW_SIZES.length * 2; // 6 rows total
+        const byHeight = Math.floor(cardAreaH / totalCardRows);
+        const rawW = Math.min(byWidth, Math.round((byHeight * 2) / 3));
+        CARD_W = Math.max(16, Math.min(66, rawW));
+        CARD_H = Math.round(CARD_W * 1.5);
+      }
+
+      // ======================================================
+      // GAME STATE
+      // ======================================================
+      const gameState = {
+        pattern: "D", // 'A'=both-scatter | 'B'=both-aligned | 'C'=enemy-scatter+self-manual | 'D'=enemy-aligned+self-manual | 'E'=all-manual
+        readMode: "placed", // 'placed' | 'all100'
+        selfCandidates: new Set(), // C/D patterns: 25 poem IDs pre-assigned to self field
+        initSelfSlots: [],
+        initEnemySlots: [],
+        initPlacedSet: new Set(),
+        timerMinutes: 15,
+        timerRemaining: 900,
+        timerInterval: null,
+        phase: "setup", // setup | arrange | memorize | play | results
+        selfSlots: Array(48).fill(null),
+        enemySlots: Array(48).fill(null),
+        playOrder: [],
+        currentIndex: 0,
+        score: 0,
+        results: [],
+        waitingForTap: false,
+        currentReadingId: null,
+        compactCards: false,       // 出札位置を端に詰めるかどうか
+        arrangeStartTime: null,    // timestamp when arrange phase begins
+        memorizeStartTime: null,   // timestamp when memorize phase begins
+        actualMemorizeSecs: 0,     // actual seconds spent in memorize phase
+        readingStartTime: null,    // timestamp when player can tap (waitingForTap=true)
+        upperAudio: null,
+        lowerAudio: null,
+        joukaPlaying: false,
+        joukaAudio: null,
+        audioUnlocked: false,
+        selectedSlot: null, // { field, slot }
+      };
+
+      // ======================================================
+      // DOM REFERENCES
+      // ======================================================
+      const $ = (id) => document.getElementById(id);
+      const dom = {
+        screens: {
+          setup: $("screen-setup"),
+          game: $("screen-game"),
+          results: $("screen-results"),
+        },
+        timer: $("timer-display"),
+        poemIndicator: $("poem-indicator"),
+        scoreDisplay: $("score-display"),
+        selfRows: [0, 1, 2].map((i) => $(`self-row-${i}`)),
+        enemyRows: [0, 1, 2].map((i) => $(`enemy-row-${i}`)),
+        selfRemaining: $("self-remaining"),
+        enemyRemaining: $("enemy-remaining"),
+        cardPool: $("card-pool-area"),
+        poolCards: $("pool-cards"),
+        arrangeProgress: $("arrange-progress-footer"),
+        btnStartMemorize: $("btn-start-memorize"),
+        btnEndMemorize: $("btn-end-memorize"),
+        btnSkipPoem: $("btn-skip-poem"),
+        playInfo: $("play-info"),
+        modal: $("modal-overlay"),
+        modalGrid: $("modal-grid"),
+        modalSearch: $("modal-search"),
+        modalEmpty: $("modal-empty"),
+        notification: $("notification"),
+        notifText: $("notif-text"),
+        notifSub: $("notif-sub"),
+      };
+
+      // ======================================================
+      // POEM INDICATOR HELPERS
+      // ======================================================
+      function setPoemIndicatorStatic(text) {
+        $('poem-indicator-scroll').style.display = 'none';
+        const stat = $('poem-indicator-static');
+        stat.style.display = '';
+        stat.textContent = text;
+      }
+
+      function setPoemIndicatorScroll(text) {
+        $('poem-indicator-static').style.display = 'none';
+        const scrollDiv = $('poem-indicator-scroll');
+        scrollDiv.style.display = '';
+        const inner = $('poem-scroll-inner');
+        inner.textContent = text;
+        // Reset animation by removing duration, reflow, then setting duration
+        // Fully stop animation, force reflow, then restart from 'from' position
+        inner.style.animation = 'none';
+        void inner.offsetWidth; // force reflow → resets to translateX(144px)
+        // 0.48s per character → slower, comfortable reading speed
+        const duration = Math.max(7, text.length * 0.48);
+        inner.style.animation = `poem-marquee ${duration}s linear infinite`;
+      }
+
+      // Format integer seconds → "X分Y秒" or "Y秒"
+      function formatTimeSecs(secs) {
+        secs = Math.round(secs || 0);
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        if (m === 0) return `${s}秒`;
+        return `${m}分${s}秒`;
+      }
+
+      // ======================================================
+      // SHOW SCREEN
+      // ======================================================
+      function showScreen(name) {
+        Object.entries(dom.screens).forEach(([k, el]) => {
+          el.classList.toggle("active", k === name);
+        });
+      }
+
+      // ======================================================
+      // FOOTER BUTTON VISIBILITY
+      // ======================================================
+      function setFooterMode(mode) {
+        dom.arrangeProgress.style.display =
+          mode === "arrange" ? "block" : "none";
+        dom.btnStartMemorize.style.display =
+          mode === "arrange" ? "inline-block" : "none";
+        dom.btnEndMemorize.style.display =
+          mode === "memorize" ? "inline-block" : "none";
+        dom.btnSkipPoem.style.display =
+          mode === "play" ? "inline-block" : "none";
+        dom.playInfo.style.display = mode === "play" ? "block" : "none";
+        dom.cardPool.classList.toggle("visible", mode === "arrange");
+        const timerRow = $("arrange-timer-row");
+        if (timerRow) timerRow.classList.toggle("visible", mode === "arrange");
+      }
+
+      // ======================================================
+      // NOTIFICATION TOAST
+      // ======================================================
+      let notifTimer = null;
+      function showNotification(text, type, sub = "", duration = 1800) {
+        clearTimeout(notifTimer);
+        dom.notification.className = `show ${type}`;
+        dom.notifText.textContent = text;
+        dom.notifSub.textContent = sub;
+        notifTimer = setTimeout(() => {
+          dom.notification.className = "";
+        }, duration);
+      }
+
+      // ======================================================
+      // SETUP SCREEN
+      // ======================================================
+      function initSetup() {
+        // Pattern card selection
+        document.querySelectorAll(".pattern-card").forEach((card) => {
+          card.addEventListener("click", () => {
+            document
+              .querySelectorAll(".pattern-card")
+              .forEach((c) => c.classList.remove("active"));
+            card.classList.add("active");
+            gameState.pattern = card.dataset.pattern;
+          });
+        });
+
+        // Start button → always go to arrange screen
+        $("btn-start-game").addEventListener("click", startGame);
+
+        // Check OGG support
+        const testAudio = new Audio();
+        if (testAudio.canPlayType("audio/ogg") === "") {
+          $("audio-warning").style.display = "block";
+        }
+      }
+
+      function startGame() {
+        gameState.score = 0;
+        gameState.results = [];
+        gameState.currentIndex = 0;
+        const totalSlots = ROW_SIZES.reduce((a, b) => a + b, 0);
+        gameState.selfSlots = Array(totalSlots).fill(null);
+        gameState.enemySlots = Array(totalSlots).fill(null);
+        gameState.phase = "arrange";
+
+        calcCardSize();
+
+        // Pre-fill based on pattern
+        const pat = gameState.pattern;
+        if (pat !== "C" && pat !== "D") gameState.selfCandidates = new Set();
+        if (pat === "A" || pat === "B") {
+          // Both fields random
+          initRandomArrangement(pat);
+        } else if (pat === "C" || pat === "D") {
+          // Enemy only random; self stays empty for manual fill
+          initEnemyOnlyRandom(pat);
+        }
+        // Pattern E: both empty (already cleared above)
+
+        buildBoard(false);
+        showScreen("game");
+        startArrange();
+      }
+
+      // ======================================================
+      // RANDOM ARRANGEMENT
+      // ======================================================
+      // ちらし取り: place 25 cards at random positions among 48 slots
+      function distributeScatter(cardIds) {
+        const totalSlots = ROW_SIZES.reduce((a, b) => a + b, 0);
+        const slots = Array(totalSlots).fill(null);
+        const pos = shuffle([...Array(totalSlots).keys()])
+          .slice(0, cardIds.length)
+          .sort((a, b) => a - b);
+        pos.forEach((p, i) => {
+          slots[p] = cardIds[i];
+        });
+        return slots;
+      }
+
+      // 左右端に寄せる: pack cards to left/right edges of each row
+      function distributeAligned(cardIds) {
+        const totalSlots = ROW_SIZES.reduce((a, b) => a + b, 0);
+        const slots = Array(totalSlots).fill(null);
+        const cards = shuffle([...cardIds]);
+        const rowDist = shuffle([9, 8, 8]); // total=25, each≤16
+        let cardOffset = 0;
+        ROW_SIZES.forEach((rowSize, rowIdx) => {
+          const rowStart = ROW_SIZES.slice(0, rowIdx).reduce(
+            (a, b) => a + b,
+            0,
+          );
+          const count = rowDist[rowIdx];
+          const rowCards = shuffle(cards.slice(cardOffset, cardOffset + count));
+          cardOffset += count;
+          const leftCards = [],
+            rightCards = [];
+          rowCards.forEach((card) => {
+            (Math.random() < 0.5 ? leftCards : rightCards).push(card);
+          });
+          leftCards.forEach((card, i) => {
+            slots[rowStart + i] = card;
+          });
+          rightCards.forEach((card, i) => {
+            slots[rowStart + rowSize - 1 - i] = card;
+          });
+        });
+        return slots;
+      }
+
+      function initRandomArrangement(pattern) {
+        const ids = shuffle([...Array(100).keys()].map((i) => i + 1));
+        const selfIds = ids.slice(0, 25);
+        const enemyIds = ids.slice(25, 50);
+        if (pattern === "B") {
+          gameState.selfSlots = distributeAligned(selfIds);
+          gameState.enemySlots = distributeAligned(enemyIds);
+        } else {
+          gameState.selfSlots = distributeScatter(selfIds);
+          gameState.enemySlots = distributeScatter(enemyIds);
+        }
+      }
+
+      function initEnemyOnlyRandom(pattern) {
+        const ids = shuffle([...Array(100).keys()].map((i) => i + 1));
+        const enemyIds = ids.slice(0, 25); // first 25 go to enemy
+        gameState.selfCandidates = new Set(ids.slice(25, 50)); // next 25 pre-assigned to self
+        if (pattern === "D") {
+          gameState.enemySlots = distributeAligned(enemyIds);
+        } else {
+          gameState.enemySlots = distributeScatter(enemyIds);
+        }
+        // selfSlots stays all-null (manual placement)
+      }
+
+      // ======================================================
+      // BUILD BOARD
+      // ======================================================
+      function buildBoard(emptyMode = false) {
+        calcCardSize();
+        const fields = [
+          { name: "self", slots: gameState.selfSlots, rows: dom.selfRows },
+          { name: "enemy", slots: gameState.enemySlots, rows: dom.enemyRows },
+        ];
+
+        fields.forEach(({ name, slots, rows }) => {
+          rows.forEach((r) => {
+            r.innerHTML = "";
+          });
+          let slotIdx = 0;
+          ROW_SIZES.forEach((size, rowIdx) => {
+            for (let col = 0; col < size; col++) {
+              const el = createSlotEl(
+                name,
+                slotIdx,
+                emptyMode ? null : slots[slotIdx],
+              );
+              rows[rowIdx].appendChild(el);
+              slotIdx++;
+            }
+          });
+        });
+
+        updateFieldCounts();
+      }
+
+      function createSlotEl(field, slotIdx, poemId) {
+        const div = document.createElement("div");
+        div.className = "card-slot" + (poemId ? "" : " empty-slot");
+        div.dataset.field = field;
+        div.dataset.slot = slotIdx;
+        div.style.width = CARD_W + "px";
+        div.style.height = CARD_H + "px";
+
+        if (poemId) {
+          div.dataset.poemId = poemId;
+          div.appendChild(createCardInner(poemId, false));
+        }
+
+        // Single click (mouse / empty-slot touch): open modal in arrange; handle tap in play
+        // Double-click (mouse): remove card in arrange
+        // Double-tap (touch): handled in setupTouchDrag for filled slots
+        let _clickTimer = null;
+        div.addEventListener("click", (e) => {
+          if (gameState.phase === "arrange") {
+            // Only fires for mouse or empty-slot touch (filled slots handle via touchend)
+            if (_clickTimer) clearTimeout(_clickTimer);
+            _clickTimer = setTimeout(() => {
+              _clickTimer = null;
+              const currentId = parseInt(div.dataset.poemId) || null;
+              openModalForSlot(field, slotIdx, currentId);
+            }, 260);
+          } else if (gameState.phase === "play") {
+            const pid = parseInt(div.dataset.poemId);
+            if (pid && gameState.waitingForTap) handleCardTap(pid);
+          }
+        });
+        div.addEventListener("dblclick", (e) => {
+          if (gameState.phase !== "arrange") return;
+          if (_clickTimer) {
+            clearTimeout(_clickTimer);
+            _clickTimer = null;
+          }
+          const pid = parseInt(div.dataset.poemId);
+          if (pid) removeCardFromArrangeSlot(pid);
+        });
+        setupTouchDrag(div);
+        return div;
+      }
+
+      function removeCardFromArrangeSlot(poemId) {
+        for (let f of ["self", "enemy"]) {
+          const sl = f === "self" ? gameState.selfSlots : gameState.enemySlots;
+          for (let i = 0; i < sl.length; i++) {
+            if (sl[i] === poemId) {
+              sl[i] = null;
+              break;
+            }
+          }
+        }
+        buildBoard(false);
+        buildPoolCards();
+        updateArrangeProgress();
+        updateFieldCounts();
+      }
+
+      function createCardInner(poemId, faceDown) {
+        const inner = document.createElement("div");
+        inner.className = "card-inner" + (faceDown ? " face-down" : "");
+        inner.dataset.poemId = poemId;
+
+        const face = document.createElement("div");
+        face.className = "card-face";
+        const faceImg = document.createElement("img");
+        faceImg.src = IMG(poemId);
+        faceImg.alt = `${poemId}番`;
+        faceImg.loading = "lazy";
+        face.appendChild(faceImg);
+
+        const back = document.createElement("div");
+        back.className = "card-back";
+        const backImg = document.createElement("img");
+        backImg.src = BACK_IMG();
+        backImg.alt = "裏";
+        back.appendChild(backImg);
+
+        inner.appendChild(face);
+        inner.appendChild(back);
+        return inner;
+      }
+
+      function getSlotEl(field, slotIdx) {
+        const rows = field === "self" ? dom.selfRows : dom.enemyRows;
+        const [rowIdx] = slotToRowCol(slotIdx);
+        return (
+          rows[rowIdx].children[
+            slotIdx -
+              (rowIdx > 0
+                ? ROW_SIZES.slice(0, rowIdx).reduce((a, b) => a + b, 0)
+                : 0)
+          ] || null
+        );
+      }
+
+      function updateFieldCounts() {
+        const selfCount = gameState.selfSlots.filter(Boolean).length;
+        const enemyCount = gameState.enemySlots.filter(Boolean).length;
+        dom.selfRemaining.textContent = selfCount + "/25";
+        dom.enemyRemaining.textContent = enemyCount + "/25";
+      }
+
+      // ======================================================
+      // ARRANGE PHASE
+      // ======================================================
+      function startArrange() {
+        gameState.phase = "arrange";
+        gameState.arrangeStartTime = Date.now(); // 配置時間計測 開始
+        setFooterMode("arrange");
+        dom.timer.textContent = "--:--";
+        const pat = gameState.pattern;
+        if (pat === "A" || pat === "B") {
+          setPoemIndicatorStatic("配置を確認・入れ替えできます（ドラッグ or タップ）");
+        } else if (pat === "C" || pat === "D") {
+          setPoemIndicatorStatic("自陣の空きスロットをタップして25枚を配置してください");
+        } else {
+          setPoemIndicatorStatic("空きスロットをタップして札を配置してください");
+        }
+        initArrangeTimer();
+        buildPoolCards();
+        updateArrangeProgress();
+      }
+
+      function initArrangeTimer() {
+        const row = $("arrange-timer-row");
+        row.classList.add("visible");
+        // Attach listeners (only once by checking flag)
+        if (row.dataset.initialized) return;
+        row.dataset.initialized = "1";
+        document.querySelectorAll(".arr-preset").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document
+              .querySelectorAll(".arr-preset")
+              .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            gameState.timerMinutes = parseInt(btn.dataset.min);
+            $("arr-custom-min").value = "";
+          });
+        });
+        $("arr-custom-min").addEventListener("input", (e) => {
+          const v = parseInt(e.target.value);
+          if (v >= 1 && v <= 60) {
+            document
+              .querySelectorAll(".arr-preset")
+              .forEach((b) => b.classList.remove("active"));
+            gameState.timerMinutes = v;
+          }
+        });
+      }
+
+      function buildPoolCards() {
+        dom.poolCards.innerHTML = "";
+        const placed = new Set(
+          [...gameState.selfSlots, ...gameState.enemySlots].filter(Boolean),
+        );
+        // For C/D patterns, pool only shows the pre-assigned self candidates
+        const pat = gameState.pattern;
+        const useCandidates =
+          (pat === "C" || pat === "D") && gameState.selfCandidates.size > 0;
+        for (let id = 1; id <= 100; id++) {
+          if (placed.has(id)) continue;
+          if (useCandidates && !gameState.selfCandidates.has(id)) continue;
+          const el = document.createElement("div");
+          el.className = "pool-card";
+          el.dataset.poemId = id;
+          const img = document.createElement("img");
+          img.src = IMG(id);
+          img.alt = `${id}番`;
+          img.loading = "lazy";
+          const num = document.createElement("span");
+          num.className = "pool-num";
+          num.textContent = id;
+          el.appendChild(img);
+          el.appendChild(num);
+          el.addEventListener("click", () => {
+            if (gameState.selectedSlot) {
+              placeCard(
+                id,
+                gameState.selectedSlot.field,
+                gameState.selectedSlot.slot,
+              );
+              closeModal();
+              gameState.selectedSlot = null;
+            }
+          });
+          setupPoolDrag(el, id);
+          dom.poolCards.appendChild(el);
+        }
+      }
+
+      function updateArrangeProgress() {
+        const selfCount = gameState.selfSlots.filter(Boolean).length;
+        const enemyCount = gameState.enemySlots.filter(Boolean).length;
+        const total = selfCount + enemyCount;
+        dom.arrangeProgress.textContent = `${total}枚配置済み（いつでも開始可）`;
+        dom.btnStartMemorize.disabled = false;
+      }
+
+      // Slot is clicked during arrange: open modal
+      function openModalForSlot(field, slotIdx, currentPoemId) {
+        gameState.selectedSlot = {
+          field,
+          slot: slotIdx,
+          currentId: currentPoemId,
+        };
+        buildModalGrid(currentPoemId);
+        dom.modalSearch.value = "";
+        dom.modal.classList.add("visible");
+        setTimeout(() => dom.modalSearch.focus(), 100);
+      }
+
+      // Mnemonic ordering for karuta 決まり字 first characters
+      const MNEMONIC_ORDER =
+        "むすめふさほせうつしもゆいちひきはやよかみたこおわなあ";
+
+      function buildModalGrid(excludeCurrentId = null) {
+        const placed = new Set(
+          [...gameState.selfSlots, ...gameState.enemySlots].filter(Boolean),
+        );
+        if (excludeCurrentId) placed.delete(excludeCurrentId);
+
+        // For C/D patterns, self-field modal only shows pre-assigned candidates
+        const pat = gameState.pattern;
+        const isSelfField =
+          gameState.selectedSlot && gameState.selectedSlot.field === "self";
+        const useCandidates =
+          (pat === "C" || pat === "D") &&
+          isSelfField &&
+          gameState.selfCandidates.size > 0;
+
+        // Collect available poem IDs
+        const available = [];
+        for (let id = 1; id <= 100; id++) {
+          if (placed.has(id)) continue;
+          if (useCandidates && !gameState.selfCandidates.has(id)) continue;
+          available.push(id);
+        }
+
+        // Sort by mnemonic order of first char of 決まり字
+        available.sort((a, b) => {
+          const ca = POEMS[a].kimari[0],
+            cb = POEMS[b].kimari[0];
+          const ia = MNEMONIC_ORDER.indexOf(ca),
+            ib = MNEMONIC_ORDER.indexOf(cb);
+          if (ia !== ib) return ia - ib;
+          // Same first char: shorter 決まり字 first, then by id
+          return POEMS[a].kimari.length - POEMS[b].kimari.length || a - b;
+        });
+
+        dom.modalGrid.innerHTML = "";
+        available.forEach((id) => {
+          const el = document.createElement("div");
+          el.className = "modal-kimari-btn";
+          el.dataset.poemId = id;
+          el.textContent = POEMS[id].kimari;
+          el.title = `${id}番: ${POEMS[id].text.slice(0, 12)}…`;
+          el.addEventListener("click", () => {
+            const ss = gameState.selectedSlot;
+            if (ss) placeCard(id, ss.field, ss.slot);
+            closeModal();
+          });
+          dom.modalGrid.appendChild(el);
+        });
+        dom.modalEmpty.style.display =
+          available.length === 0 ? "block" : "none";
+      }
+
+      function filterModal(query) {
+        const q = query.trim().toLowerCase();
+        let visible = 0;
+        dom.modalGrid.querySelectorAll(".modal-kimari-btn").forEach((el) => {
+          const id = parseInt(el.dataset.poemId);
+          const p = POEMS[id];
+          const matches =
+            !q ||
+            String(id).includes(q) ||
+            p.kimari.includes(q) ||
+            p.text.includes(q);
+          el.classList.toggle("hidden-card", !matches);
+          if (matches) visible++;
+        });
+        dom.modalEmpty.style.display = visible === 0 ? "block" : "none";
+      }
+
+      function placeCard(poemId, field, slotIdx) {
+        const targetSlots =
+          field === "self" ? gameState.selfSlots : gameState.enemySlots;
+        const displacedId = targetSlots[slotIdx]; // card currently in target slot (if any)
+
+        // Find where poemId currently lives (could be a slot or pool)
+        let srcField = null,
+          srcSlotIdx = -1;
+        for (const f of ["self", "enemy"]) {
+          const sl = f === "self" ? gameState.selfSlots : gameState.enemySlots;
+          for (let i = 0; i < sl.length; i++) {
+            if (sl[i] === poemId) {
+              srcField = f;
+              srcSlotIdx = i;
+              break;
+            }
+          }
+          if (srcField) break;
+        }
+
+        // Remove poemId from its current position
+        if (srcField) {
+          const srcSlots =
+            srcField === "self" ? gameState.selfSlots : gameState.enemySlots;
+          srcSlots[srcSlotIdx] = null;
+        }
+
+        // Place poemId in target slot
+        targetSlots[slotIdx] = poemId;
+
+        // If target had a card AND source was a board slot → swap (put displaced card back to source)
+        if (displacedId && srcField) {
+          const srcSlots =
+            srcField === "self" ? gameState.selfSlots : gameState.enemySlots;
+          srcSlots[srcSlotIdx] = displacedId;
+        }
+        // If target had a card but source was pool → displaced card goes to pool (handled by buildPoolCards)
+
+        buildBoard(false);
+        buildPoolCards();
+        updateArrangeProgress();
+        updateFieldCounts();
+      }
+
+      function closeModal() {
+        dom.modal.classList.remove("visible");
+        gameState.selectedSlot = null;
+      }
+
+      // ======================================================
+      // DRAG & DROP (Touch-friendly)
+      // ======================================================
+      let drag = {
+        active: false,
+        poemId: null,
+        srcField: null,
+        srcSlot: null,
+        ghost: null,
+        hasMoved: false,
+        startX: 0,
+        startY: 0,
+      };
+
+      function setupPoolDrag(el, poemId) {
+        el.addEventListener(
+          "touchstart",
+          (e) => {
+            e.preventDefault();
+            startDrag(
+              e.touches[0].clientX,
+              e.touches[0].clientY,
+              poemId,
+              null,
+              null,
+            );
+          },
+          { passive: false },
+        );
+        el.addEventListener("mousedown", (e) => {
+          startDrag(e.clientX, e.clientY, poemId, null, null);
+        });
+      }
+
+      function setupTouchDrag(slotEl) {
+        let _tStartX = 0,
+          _tStartY = 0,
+          _tStartTime = 0,
+          _lastTapTime = 0;
+
+        slotEl.addEventListener(
+          "touchstart",
+          (e) => {
+            if (gameState.phase !== "arrange") return;
+            const poemId = parseInt(slotEl.dataset.poemId);
+            if (!poemId) return;
+            _tStartX = e.touches[0].clientX;
+            _tStartY = e.touches[0].clientY;
+            _tStartTime = Date.now();
+            e.preventDefault();
+            startDrag(
+              _tStartX,
+              _tStartY,
+              poemId,
+              slotEl.dataset.field,
+              parseInt(slotEl.dataset.slot),
+            );
+          },
+          { passive: false },
+        );
+
+        // Touch tap / double-tap handling (since preventDefault suppresses click)
+        slotEl.addEventListener(
+          "touchend",
+          (e) => {
+            if (gameState.phase !== "arrange") return;
+            const poemId = parseInt(slotEl.dataset.poemId);
+            if (!poemId) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - _tStartX,
+              dy = t.clientY - _tStartY;
+            const moved = dx * dx + dy * dy > 64; // 8px threshold
+            const quick = Date.now() - _tStartTime < 400;
+            if (!moved && quick) {
+              e.preventDefault(); // prevent ghost click
+              const now = Date.now();
+              if (now - _lastTapTime < 350) {
+                // Double-tap: delete card
+                _lastTapTime = 0;
+                removeCardFromArrangeSlot(parseInt(slotEl.dataset.poemId));
+              } else {
+                _lastTapTime = now;
+                // Single tap: open modal after delay (allows double-tap window)
+                const captField = slotEl.dataset.field;
+                const captSlot = parseInt(slotEl.dataset.slot);
+                const captId = parseInt(slotEl.dataset.poemId) || null;
+                setTimeout(() => {
+                  if (
+                    Date.now() - _lastTapTime >= 300 &&
+                    gameState.phase === "arrange"
+                  ) {
+                    openModalForSlot(captField, captSlot, captId);
+                  }
+                }, 320);
+              }
+            }
+          },
+          { passive: false },
+        );
+
+        slotEl.addEventListener("mousedown", (e) => {
+          if (gameState.phase !== "arrange") return;
+          const poemId = parseInt(slotEl.dataset.poemId);
+          if (!poemId) return;
+          startDrag(
+            e.clientX,
+            e.clientY,
+            poemId,
+            slotEl.dataset.field,
+            parseInt(slotEl.dataset.slot),
+          );
+        });
+      }
+
+      function startDrag(x, y, poemId, srcField, srcSlot) {
+        drag.active = true;
+        drag.poemId = poemId;
+        drag.srcField = srcField;
+        drag.srcSlot = srcSlot;
+        drag.hasMoved = false;
+        drag.startX = x;
+        drag.startY = y;
+        // Pre-load ghost image but keep hidden until movement detected
+        $("drag-ghost-img").src = IMG(poemId);
+        $("drag-ghost").style.display = "none";
+      }
+
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!drag.active) return;
+          e.preventDefault();
+          moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("touchend", (e) => {
+        if (!drag.active) return;
+        endDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!drag.active) return;
+        moveDrag(e.clientX, e.clientY);
+      });
+
+      document.addEventListener("mouseup", (e) => {
+        if (!drag.active) return;
+        endDrag(e.clientX, e.clientY);
+      });
+
+      function moveDrag(x, y) {
+        const dx = x - drag.startX,
+          dy = y - drag.startY;
+        if (!drag.hasMoved && dx * dx + dy * dy > 25) {
+          drag.hasMoved = true;
+          const ghost = $("drag-ghost");
+          ghost.style.width = CARD_W + "px";
+          ghost.style.height = CARD_H + "px";
+          ghost.style.display = "block";
+        }
+        if (!drag.hasMoved) return;
+        const ghost = $("drag-ghost");
+        ghost.style.left = x - CARD_W / 2 + "px";
+        ghost.style.top = y - CARD_H / 2 + "px";
+        // Highlight drop target
+        document
+          .querySelectorAll(".drag-over")
+          .forEach((el) => el.classList.remove("drag-over"));
+        const target = getSlotAtPoint(x, y);
+        ghost.style.display = "block"; // re-show after getSlotAtPoint temporarily hid it
+        if (target) target.classList.add("drag-over");
+      }
+
+      function endDrag(x, y) {
+        $("drag-ghost").style.display = "none";
+        document
+          .querySelectorAll(".drag-over")
+          .forEach((el) => el.classList.remove("drag-over"));
+        if (drag.hasMoved && drag.poemId) {
+          const target = getSlotAtPoint(x, y);
+          if (target) {
+            placeCard(
+              drag.poemId,
+              target.dataset.field,
+              parseInt(target.dataset.slot),
+            );
+          }
+        }
+        drag.active = false;
+        drag.poemId = null;
+      }
+
+      function getSlotAtPoint(x, y) {
+        $("drag-ghost").style.display = "none";
+        const els = document.elementsFromPoint(x, y);
+        // NOTE: caller is responsible for re-showing ghost if needed (endDrag does NOT re-show)
+        return els.find((el) => el.classList.contains("card-slot")) || null;
+      }
+
+      // ======================================================
+      // MEMORIZE PHASE
+      // ======================================================
+      function startMemorize() {
+        gameState.phase = "memorize";
+        gameState.memorizeStartTime = Date.now(); // 暗記時間計測 開始
+        // Save initial layout snapshot for results board
+        gameState.initSelfSlots = [...gameState.selfSlots];
+        gameState.initEnemySlots = [...gameState.enemySlots];
+        gameState.initPlacedSet = new Set([
+          ...gameState.selfSlots.filter(Boolean),
+          ...gameState.enemySlots.filter(Boolean),
+        ]);
+
+        setFooterMode("memorize");
+        setPoemIndicatorStatic("暗記してください");
+        dom.timer.textContent = formatTime(gameState.timerRemaining);
+        dom.scoreDisplay.textContent = "";
+
+        // Ensure cards face-up
+        document.querySelectorAll(".card-inner").forEach((el) => {
+          el.classList.remove("face-down");
+        });
+
+        startTimer();
+      }
+
+      function startTimer() {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = setInterval(() => {
+          gameState.timerRemaining--;
+          dom.timer.textContent = formatTime(gameState.timerRemaining);
+          if (gameState.timerRemaining <= 0) {
+            clearInterval(gameState.timerInterval);
+            endMemorize();
+          }
+          if (gameState.timerRemaining <= 60) {
+            dom.timer.style.color = "#ff6060";
+          }
+        }, 1000);
+      }
+
+      function endMemorize() {
+        clearInterval(gameState.timerInterval);
+        // 暗記時間計測: 使用した秒数を記録
+        gameState.actualMemorizeSecs = gameState.timerMinutes * 60 - gameState.timerRemaining;
+        dom.timer.style.color = "";
+        // Flip all cards face-down
+        document.querySelectorAll(".card-inner").forEach((el) => {
+          el.classList.add("face-down");
+        });
+        setTimeout(() => {
+          $("readmode-overlay").style.display = "flex";
+        }, 600);
+      }
+
+      function formatTime(secs) {
+        const m = Math.floor(secs / 60),
+          s = secs % 60;
+        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      }
+
+      // ======================================================
+      // PLAY PHASE
+      // ======================================================
+      function initPlayOrder() {
+        if (gameState.readMode === "all100") {
+          gameState.playOrder = shuffle(
+            [...Array(100).keys()].map((i) => i + 1),
+          );
+        } else {
+          gameState.playOrder = shuffle([...gameState.initPlacedSet]);
+        }
+        gameState.currentIndex = 0;
+      }
+
+      function startPlay() {
+        gameState.phase = "play";
+        setFooterMode("play");
+        gameState.score = 0;
+        gameState.results = [];
+        initPlayOrder();
+
+        updateScoreDisplay();
+        dom.timer.style.color = "";
+        setPoemIndicatorStatic("序歌を読み上げます...");
+        // Short delay then play 序歌
+        setTimeout(() => playJouka(), 800);
+      }
+
+      function calcScore(results) {
+        const correct = results.filter((r) => r.result === "correct").length;
+        const wrong = results.filter((r) => r.result === "wrong").length;
+        const missed = results.filter((r) => r.result === "missed").length;
+        const foul = results.filter((r) => r.result === "foul").length;
+        return correct - wrong - missed * 2 - foul * 4;
+      }
+
+      function updateScoreDisplay() {
+        const score = calcScore(gameState.results);
+        const total = gameState.playOrder.length;
+        const done = gameState.results.filter(
+          (r) => r.result !== "foul" || true,
+        ).length;
+        dom.scoreDisplay.textContent = `${score}点 / ${done}/${total}枚`;
+        dom.playInfo.textContent = `現在 ${score} 点`;
+        const selfLeft = gameState.selfSlots.filter(Boolean).length;
+        const enemyLeft = gameState.enemySlots.filter(Boolean).length;
+        dom.selfRemaining.textContent = selfLeft + "/25";
+        dom.enemyRemaining.textContent = enemyLeft + "/25";
+      }
+
+      function playJouka() {
+        gameState.joukaPlaying = true;
+        setPoemIndicatorStatic("序歌を読み上げ中...（読み飛ばし可）");
+
+        const onJoukaDone = () => {
+          if (!gameState.joukaPlaying) return; // already skipped
+          gameState.joukaPlaying = false;
+          gameState.joukaAudio = null;
+          startReadingPoems();
+        };
+
+        const audio1 = new Audio(AUDIO_URL(0, 1));
+        gameState.joukaAudio = audio1;
+        audio1.onerror = () => onJoukaDone();
+        audio1.onended = () => {
+          if (!gameState.joukaPlaying) return;
+          const audio2 = new Audio(AUDIO_URL(0, 2));
+          gameState.joukaAudio = audio2;
+          audio2.onerror = () => onJoukaDone();
+          audio2.onended = () => onJoukaDone();
+          audio2.play().catch(() => onJoukaDone());
+        };
+        audio1.play().catch(() => onJoukaDone());
+      }
+
+      function skipJouka() {
+        if (!gameState.joukaPlaying) return;
+        gameState.joukaPlaying = false;
+        if (gameState.joukaAudio) {
+          try {
+            gameState.joukaAudio.pause();
+          } catch (e) {}
+          gameState.joukaAudio = null;
+        }
+        startReadingPoems();
+      }
+
+      function startReadingPoems() {
+        if (gameState.currentIndex >= gameState.playOrder.length) {
+          endGame();
+          return;
+        }
+        playNextPoem();
+      }
+
+      function playNextPoem() {
+        if (gameState.currentIndex >= gameState.playOrder.length) {
+          endGame();
+          return;
+        }
+
+        stopCurrentAudio();
+        gameState.waitingForTap = false;
+
+        const poemId = gameState.playOrder[gameState.currentIndex];
+        gameState.currentReadingId = poemId;
+        const poem = POEMS[poemId];
+        const isOnBoard = gameState.initPlacedSet.has(poemId);
+
+        dom.timer.textContent = `${gameState.currentIndex + 1}/${gameState.playOrder.length}`;
+
+        // Handle 空札 (card not on board) in all100 mode
+        if (!isOnBoard) {
+          setPoemIndicatorScroll(poem.text);
+          playAirCard(poemId);
+          return;
+        }
+
+        setPoemIndicatorScroll(poem.text);
+
+        // Play upper verse
+        const upper = new Audio(AUDIO_URL(poemId, 1));
+        gameState.upperAudio = upper;
+
+        upper.onerror = () => {
+          // Audio error: auto-skip after delay
+          gameState.waitingForTap = true;
+          gameState.readingStartTime = Date.now();
+          setTimeout(() => {
+            if (
+              gameState.waitingForTap &&
+              gameState.currentReadingId === poemId
+            ) {
+              playLowerVerse(poemId);
+            }
+          }, 2000);
+        };
+
+        upper.onended = () => {
+          if (gameState.currentReadingId !== poemId) return;
+          // Pause between upper and lower verse (~1 second)
+          setTimeout(() => {
+            if (
+              gameState.waitingForTap &&
+              gameState.currentReadingId === poemId
+            ) {
+              playLowerVerse(poemId);
+            }
+          }, 1200);
+        };
+
+        // Enable tapping after a brief moment; record readingStartTime
+        setTimeout(() => {
+          if (gameState.currentReadingId === poemId) {
+            gameState.waitingForTap = true;
+            gameState.readingStartTime = Date.now();
+          }
+        }, 300);
+
+        upper.play().catch(() => {
+          gameState.waitingForTap = true;
+          setTimeout(() => {
+            if (
+              gameState.waitingForTap &&
+              gameState.currentReadingId === poemId
+            ) {
+              playLowerVerse(poemId);
+            }
+          }, 3000);
+        });
+      }
+
+      function playAirCard(poemId) {
+        // 空札: 両句再生後に自動進行。waitingForTap=trueでお手つき検知を可能にする
+        gameState.waitingForTap = true;
+        const advance = () => {
+          if (gameState.currentReadingId !== poemId) return;
+          gameState.waitingForTap = false;
+          gameState.upperAudio = null;
+          gameState.lowerAudio = null;
+          setTimeout(() => {
+            gameState.currentIndex++;
+            startReadingPoems();
+          }, 700);
+        };
+        const upper = new Audio(AUDIO_URL(poemId, 1));
+        gameState.upperAudio = upper; // stopCurrentAudio() で停止可能にする
+        upper.onerror = () => setTimeout(advance, 1500);
+        upper.onended = () => {
+          gameState.upperAudio = null;
+          setTimeout(() => {
+            if (gameState.currentReadingId !== poemId) return;
+            const lower = new Audio(AUDIO_URL(poemId, 2));
+            gameState.lowerAudio = lower;
+            lower.onerror = () => advance();
+            lower.onended = () => {
+              gameState.lowerAudio = null;
+              advance();
+            };
+            lower.play().catch(() => advance());
+          }, 1000);
+        };
+        upper.play().catch(() => setTimeout(advance, 2500));
+      }
+
+      function playLowerVerse(poemId) {
+        if (gameState.currentReadingId !== poemId) return;
+        const lower = new Audio(AUDIO_URL(poemId, 2));
+        gameState.lowerAudio = lower;
+
+        lower.onerror = () => {
+          if (
+            gameState.waitingForTap &&
+            gameState.currentReadingId === poemId
+          ) {
+            setTimeout(() => {
+              if (
+                gameState.waitingForTap &&
+                gameState.currentReadingId === poemId
+              ) {
+                processMissed(poemId);
+              }
+            }, 1500);
+          }
+        };
+
+        lower.onended = () => {
+          if (
+            gameState.waitingForTap &&
+            gameState.currentReadingId === poemId
+          ) {
+            // After a short pause, mark as missed
+            setTimeout(() => {
+              if (
+                gameState.waitingForTap &&
+                gameState.currentReadingId === poemId
+              ) {
+                processMissed(poemId);
+              }
+            }, 800);
+          }
+        };
+
+        lower.play().catch(() => {
+          setTimeout(() => {
+            if (
+              gameState.waitingForTap &&
+              gameState.currentReadingId === poemId
+            ) {
+              processMissed(poemId);
+            }
+          }, 3000);
+        });
+      }
+
+      function stopCurrentAudio() {
+        if (gameState.upperAudio) {
+          try {
+            gameState.upperAudio.pause();
+          } catch (e) {}
+          gameState.upperAudio = null;
+        }
+        if (gameState.lowerAudio) {
+          try {
+            gameState.lowerAudio.pause();
+          } catch (e) {}
+          gameState.lowerAudio = null;
+        }
+      }
+
+      // ======================================================
+      // CARD TAP HANDLING
+      // ======================================================
+      function findCardField(poemId) {
+        if (gameState.selfSlots.includes(poemId)) return "self";
+        if (gameState.enemySlots.includes(poemId)) return "enemy";
+        return null;
+      }
+
+      function handleCardTap(poemId) {
+        if (!gameState.waitingForTap) return;
+        if (gameState.phase !== "play") return;
+
+        gameState.waitingForTap = false;
+        stopCurrentAudio();
+
+        const correctId = gameState.currentReadingId;
+        const isAirCard = !gameState.initPlacedSet.has(correctId);
+
+        // 空札中にタップ → お手つき
+        if (isAirCard) {
+          processFoul(poemId, correctId, "air");
+          return;
+        }
+
+        if (poemId === correctId) {
+          processCorrect(poemId);
+        } else {
+          // Check which field each card belongs to
+          const tappedField = findCardField(poemId);
+          const correctField = findCardField(correctId);
+          if (
+            tappedField !== null &&
+            correctField !== null &&
+            tappedField !== correctField
+          ) {
+            // 違う陣の札を触った → お手つき
+            processFoul(poemId, correctId, "wrong-field");
+          } else {
+            // 同じ陣の違う札 → ミス
+            processWrong(poemId, correctId);
+          }
+        }
+      }
+
+      function processCorrect(poemId) {
+        // 反応時間: 読み上げ開始からクリックまでの秒数
+        const tapTime = gameState.readingStartTime
+          ? (Date.now() - gameState.readingStartTime) / 1000
+          : null;
+        gameState.score++;
+        gameState.results.push({ poemId, result: "correct", tapTime });
+        showNotification("正解！", "correct", POEMS[poemId].kimari + "…", 1200);
+
+        const slotEl = findCardSlot(poemId);
+        if (slotEl) {
+          slotEl.classList.add("correct-glow");
+          // Flip to face-up briefly then remove
+          const inner = slotEl.querySelector(".card-inner");
+          if (inner) inner.classList.remove("face-down");
+          setTimeout(() => {
+            slotEl.classList.add("removing");
+            setTimeout(() => {
+              removeCardFromSlot(poemId);
+              updateScoreDisplay();
+              setTimeout(() => {
+                gameState.currentIndex++;
+                startReadingPoems();
+              }, 200);
+            }, 350);
+          }, 500);
+        } else {
+          updateScoreDisplay();
+          gameState.currentIndex++;
+          setTimeout(() => startReadingPoems(), 500);
+        }
+      }
+
+      function processWrong(tappedId, correctId) {
+        gameState.results.push({ poemId: correctId, result: "wrong" });
+        showNotification(
+          "違います！",
+          "wrong",
+          "正しい札を確認してください",
+          2500,
+        );
+
+        // Flip wrong card to reveal it
+        const wrongSlot = findCardSlot(tappedId);
+        if (wrongSlot) {
+          wrongSlot.classList.add("wrong-glow");
+          const inner = wrongSlot.querySelector(".card-inner");
+          if (inner) inner.classList.remove("face-down");
+        }
+
+        setTimeout(() => {
+          // Flip wrong card back
+          if (wrongSlot) {
+            wrongSlot.classList.remove("wrong-glow");
+            const inner = wrongSlot.querySelector(".card-inner");
+            if (inner) inner.classList.add("face-down");
+          }
+
+          // Reveal and remove correct card
+          const correctSlot = findCardSlot(correctId);
+          if (correctSlot) {
+            correctSlot.classList.add("correct-glow");
+            const inner = correctSlot.querySelector(".card-inner");
+            if (inner) inner.classList.remove("face-down");
+            setTimeout(() => {
+              correctSlot.classList.add("removing");
+              setTimeout(() => {
+                removeCardFromSlot(correctId);
+                updateScoreDisplay();
+                gameState.currentIndex++;
+                setTimeout(() => startReadingPoems(), 200);
+              }, 350);
+            }, 1000);
+          } else {
+            updateScoreDisplay();
+            gameState.currentIndex++;
+            setTimeout(() => startReadingPoems(), 300);
+          }
+        }, 1500);
+      }
+
+      function processFoul(tappedId, correctId, reason) {
+        gameState.results.push({ poemId: correctId, result: "foul" });
+
+        if (reason === "air") {
+          // 空札中のお手つき: タップされた札を一瞬開示してから次へ進む
+          showNotification("お手つき！", "foul", "空札です", 2000);
+          updateScoreDisplay();
+          // タップされた札を開示して次の誤タップを防ぐ
+          const tappedSlotAir = findCardSlot(tappedId);
+          if (tappedSlotAir) {
+            tappedSlotAir.classList.add("foul-glow");
+            const inner = tappedSlotAir.querySelector(".card-inner");
+            if (inner) inner.classList.remove("face-down");
+            setTimeout(() => {
+              if (tappedSlotAir) {
+                tappedSlotAir.classList.remove("foul-glow");
+                const inner2 = tappedSlotAir.querySelector(".card-inner");
+                if (inner2) inner2.classList.add("face-down");
+              }
+            }, 1200);
+          }
+          // 明示的に次へ進む（空札音声は停止済み）
+          setTimeout(() => {
+            if (gameState.currentReadingId !== correctId) return;
+            gameState.currentIndex++;
+            startReadingPoems();
+          }, 1500);
+          return;
+        }
+
+        // 違う陣のお手つき: ミスと同様に正解札を表示して次へ
+        showNotification("お手つき！", "foul", "反対の陣に手が出ました", 2500);
+
+        const tappedSlot = findCardSlot(tappedId);
+        if (tappedSlot) {
+          tappedSlot.classList.add("foul-glow");
+          const inner = tappedSlot.querySelector(".card-inner");
+          if (inner) inner.classList.remove("face-down");
+        }
+
+        setTimeout(() => {
+          if (tappedSlot) {
+            tappedSlot.classList.remove("foul-glow");
+            const inner = tappedSlot.querySelector(".card-inner");
+            if (inner) inner.classList.add("face-down");
+          }
+          const correctSlot = findCardSlot(correctId);
+          if (correctSlot) {
+            correctSlot.classList.add("correct-glow");
+            const inner = correctSlot.querySelector(".card-inner");
+            if (inner) inner.classList.remove("face-down");
+            setTimeout(() => {
+              correctSlot.classList.add("removing");
+              setTimeout(() => {
+                removeCardFromSlot(correctId);
+                updateScoreDisplay();
+                gameState.currentIndex++;
+                setTimeout(() => startReadingPoems(), 200);
+              }, 350);
+            }, 1000);
+          } else {
+            updateScoreDisplay();
+            gameState.currentIndex++;
+            setTimeout(() => startReadingPoems(), 300);
+          }
+        }, 1500);
+      }
+
+      function processMissed(poemId) {
+        if (gameState.currentReadingId !== poemId) return;
+        gameState.waitingForTap = false;
+        gameState.results.push({ poemId, result: "missed" });
+        showNotification(
+          "見逃し",
+          "missed",
+          `${poemId}番「${POEMS[poemId].kimari}…」`,
+          2000,
+        );
+
+        const slotEl = findCardSlot(poemId);
+        if (slotEl) {
+          slotEl.classList.add("missed-glow");
+          const inner = slotEl.querySelector(".card-inner");
+          if (inner) inner.classList.remove("face-down");
+          setTimeout(() => {
+            slotEl.classList.add("removing");
+            setTimeout(() => {
+              removeCardFromSlot(poemId);
+              updateScoreDisplay();
+              gameState.currentIndex++;
+              setTimeout(() => startReadingPoems(), 200);
+            }, 350);
+          }, 1500);
+        } else {
+          updateScoreDisplay();
+          gameState.currentIndex++;
+          setTimeout(() => startReadingPoems(), 300);
+        }
+      }
+
+      function findCardSlot(poemId) {
+        return document.querySelector(`.card-slot[data-poem-id="${poemId}"]`);
+      }
+
+      function removeCardFromSlot(poemId) {
+        // Update state, track field and slot index for optional compaction
+        let compactField = null, compactSlotIdx = -1;
+        for (let f of ["self", "enemy"]) {
+          const sl = f === "self" ? gameState.selfSlots : gameState.enemySlots;
+          for (let i = 0; i < sl.length; i++) {
+            if (sl[i] === poemId) {
+              sl[i] = null;
+              compactField = f;
+              compactSlotIdx = i;
+              break;
+            }
+          }
+          if (compactField) break;
+        }
+        // Clear card from slot DOM element
+        const el = findCardSlot(poemId);
+        if (el) {
+          el.innerHTML = "";
+          el.classList.add("empty-slot");
+          el.classList.remove("correct-glow", "wrong-glow", "missed-glow", "removing");
+          delete el.dataset.poemId;
+        }
+        // Compact row towards edges if option enabled
+        if (gameState.compactCards && compactField && compactSlotIdx >= 0) {
+          const rowIdx = Math.floor(compactSlotIdx / 16);
+          const col = compactSlotIdx % 16;
+          const slots = compactField === "self" ? gameState.selfSlots : gameState.enemySlots;
+          const rowStart = rowIdx * 16;
+          if (col < 8) {
+            // Left half: compact towards left edge — shift cols right-of-gap leftward
+            for (let c = col; c < 7; c++) {
+              slots[rowStart + c] = slots[rowStart + c + 1];
+            }
+            slots[rowStart + 7] = null;
+          } else {
+            // Right half: compact towards right edge — shift cols left-of-gap rightward
+            for (let c = col; c > 8; c--) {
+              slots[rowStart + c] = slots[rowStart + c - 1];
+            }
+            slots[rowStart + 8] = null;
+          }
+          rebuildRowDOM(compactField, rowIdx);
+        }
+      }
+
+      // Re-sync DOM for a single row based on current gameState slots (used after compaction)
+      function rebuildRowDOM(field, rowIdx) {
+        const slots = field === "self" ? gameState.selfSlots : gameState.enemySlots;
+        const rows  = field === "self" ? dom.selfRows : dom.enemyRows;
+        const rowEl = rows[rowIdx];
+        const rowStart = rowIdx * 16;
+        const slotEls = Array.from(rowEl.children);
+        for (let col = 0; col < 16; col++) {
+          const slotEl = slotEls[col];
+          if (!slotEl) continue;
+          const newId = slots[rowStart + col];
+          const oldId = parseInt(slotEl.dataset.poemId) || null;
+          if (newId === oldId) continue; // unchanged
+          if (newId) {
+            slotEl.dataset.poemId = newId;
+            slotEl.classList.remove("empty-slot");
+            slotEl.innerHTML = "";
+            slotEl.appendChild(createCardInner(newId, true)); // face-down during play
+          } else {
+            delete slotEl.dataset.poemId;
+            slotEl.classList.add("empty-slot");
+            slotEl.innerHTML = "";
+          }
+        }
+      }
+
+      // ======================================================
+      // SKIP POEM BUTTON
+      // ======================================================
+      $("btn-skip-poem").addEventListener("click", () => {
+        if (gameState.joukaPlaying) {
+          skipJouka();
+          return;
+        }
+        if (!gameState.waitingForTap) return;
+        const poemId = gameState.currentReadingId;
+        if (!poemId) return;
+        // 空札のスキップ: ミスにせず次へ
+        if (!gameState.initPlacedSet.has(poemId)) {
+          gameState.waitingForTap = false;
+          stopCurrentAudio();
+          gameState.currentIndex++;
+          setTimeout(() => startReadingPoems(), 200);
+        } else {
+          processMissed(poemId);
+        }
+      });
+
+      // ======================================================
+      // END MEMORIZE BUTTON
+      // ======================================================
+      $("btn-end-memorize").addEventListener("click", endMemorize);
+
+      // ======================================================
+      // READ MODE SELECTION
+      // ======================================================
+      $("btn-readmode-placed").addEventListener("click", () => {
+        $("readmode-overlay").style.display = "none";
+        gameState.readMode = "placed";
+        gameState.compactCards = $("compact-toggle").checked;
+        startPlay();
+      });
+      $("btn-readmode-all").addEventListener("click", () => {
+        $("readmode-overlay").style.display = "none";
+        gameState.readMode = "all100";
+        gameState.compactCards = $("compact-toggle").checked;
+        startPlay();
+      });
+
+      // ======================================================
+      // START MEMORIZE BUTTON (arrange → memorize)
+      // ======================================================
+      $("btn-start-memorize").addEventListener("click", () => {
+        gameState.timerRemaining = gameState.timerMinutes * 60;
+        buildBoard(false);
+        startMemorize();
+      });
+
+      // ======================================================
+      // END GAME → RESULTS
+      // ======================================================
+      function endGame() {
+        stopCurrentAudio();
+        gameState.phase = "results";
+        buildResultsScreen();
+        showScreen("results");
+      }
+
+      // ======================================================
+      // RESULTS SCREEN
+      // ======================================================
+      function buildResultsScreen() {
+        const results = gameState.results;
+        const correct = results.filter((r) => r.result === "correct").length;
+        const wrong = results.filter((r) => r.result === "wrong").length;
+        const missed = results.filter((r) => r.result === "missed").length;
+        const foul = results.filter((r) => r.result === "foul").length;
+        const score = calcScore(results);
+
+        $("rs-correct").textContent = correct;
+        $("rs-wrong").textContent = wrong;
+        $("rs-missed").textContent = missed;
+        $("rs-foul").textContent = foul;
+        $("rs-score-big").textContent = `${score}点`;
+        $("rs-score-big").style.color = score >= 0 ? "#f0c060" : "#e06060";
+
+        // Pattern info
+        const patNames = {
+          A: "両陣ランダム・ちらし",
+          B: "両陣ランダム・端寄せ",
+          C: "敵陣ちらし＋自陣手動",
+          D: "敵陣端寄せ＋自陣手動",
+          E: "全手動",
+        };
+        const readModeLabel =
+          gameState.readMode === "all100" ? "100枚読み" : "出札のみ";
+        const hasEmpty = gameState.initPlacedSet.size < 50;
+        $("results-pattern-info").textContent =
+          `${patNames[gameState.pattern] || ""} ｜ 暗記${gameState.timerMinutes}分 ｜ ${readModeLabel}` +
+          (hasEmpty ? ` ｜ 空札あり(${gameState.initPlacedSet.size}枚)` : "");
+
+        // --- 時間計測の結果表示 ---
+        // 配置時間
+        if (gameState.arrangeStartTime && gameState.memorizeStartTime) {
+          const arrangeSecs = (gameState.memorizeStartTime - gameState.arrangeStartTime) / 1000;
+          $("rs-arrange-time").textContent = formatTimeSecs(arrangeSecs);
+        } else {
+          $("rs-arrange-time").textContent = "-";
+        }
+        // 暗記時間（実際に使った時間）
+        $("rs-memorize-time").textContent = formatTimeSecs(gameState.actualMemorizeSecs);
+        // 反応時間合計（正解のみ）
+        const correctWithTap = results.filter((r) => r.result === "correct" && r.tapTime != null);
+        if (correctWithTap.length > 0) {
+          const tapTotal = correctWithTap.reduce((sum, r) => sum + r.tapTime, 0);
+          $("rs-tap-time").textContent = tapTotal.toFixed(1) + "秒";
+        } else {
+          $("rs-tap-time").textContent = "-";
+        }
+
+        // Draw board canvas (async, with card images)
+        drawBoardResultCanvas();
+      }
+
+      async function drawBoardResultCanvas() {
+        const canvas = $("board-result-canvas");
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const numCols = 16;
+        const pad = 6;
+        const gap = 2;
+        const totalW = Math.min(window.innerWidth * 0.96, 680);
+        const cardW = Math.floor(
+          (totalW - 2 * pad - (numCols - 1) * gap) / numCols,
+        );
+        const cardH = Math.round(cardW * 1.5);
+        const labelH = 14;
+        const fieldGap = 8;
+        const totalH =
+          2 * (labelH + 3 * (cardH + gap) - gap) + fieldGap + 2 * pad;
+
+        canvas.width = totalW * dpr;
+        canvas.height = totalH * dpr;
+        canvas.style.width = totalW + "px";
+        canvas.style.height = totalH + "px";
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+
+        // Build result map
+        const resultMap = {};
+        gameState.results.forEach((r) => {
+          resultMap[r.poemId] = r.result;
+        });
+
+        // Pre-load card images
+        const allIds = [...gameState.initPlacedSet];
+        const imgCache = {};
+        await Promise.allSettled(
+          allIds.map(
+            (id) =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  imgCache[id] = img;
+                  resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = `public/images/torifuda/torifuda_F_${id}.jpeg`;
+              }),
+          ),
+        );
+
+        // Draw background
+        ctx.fillStyle = "#1a120a";
+        ctx.fillRect(0, 0, totalW, totalH);
+
+        // Helper: draw one field
+        const drawField = (slots, yTop, label, flipCards) => {
+          ctx.fillStyle = "#b89060";
+          ctx.font = `${labelH - 2}px serif`;
+          ctx.textAlign = "left";
+          ctx.fillText(label, pad, yTop + labelH - 3);
+
+          let y = yTop + labelH;
+          for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+            let x = pad;
+            const rowStart = rowIdx * 16;
+            for (let col = 0; col < 16; col++) {
+              const slotIdx = rowStart + col;
+              const poemId = slots[slotIdx];
+              const cx = x,
+                cy = flipCards ? y + cardH : y;
+              const drawY = flipCards ? y : y;
+
+              if (poemId) {
+                if (flipCards) {
+                  // Draw enemy cards rotated 180°
+                  ctx.save();
+                  ctx.translate(cx + cardW / 2, drawY + cardH / 2);
+                  ctx.rotate(Math.PI);
+                  if (imgCache[poemId]) {
+                    ctx.drawImage(
+                      imgCache[poemId],
+                      -cardW / 2,
+                      -cardH / 2,
+                      cardW,
+                      cardH,
+                    );
+                  } else {
+                    ctx.fillStyle = "#7a4a10";
+                    ctx.fillRect(-cardW / 2, -cardH / 2, cardW, cardH);
+                    ctx.fillStyle = "#c8900a";
+                    ctx.font = `${Math.min(cardW * 0.55, 10)}px serif`;
+                    ctx.textAlign = "center";
+                    ctx.fillText(POEMS[poemId].kimari.slice(0, 2), 0, 3);
+                  }
+                  ctx.restore();
+                } else {
+                  if (imgCache[poemId]) {
+                    ctx.drawImage(imgCache[poemId], cx, drawY, cardW, cardH);
+                  } else {
+                    ctx.fillStyle = "#7a4a10";
+                    ctx.fillRect(cx, drawY, cardW, cardH);
+                    ctx.fillStyle = "#c8900a";
+                    ctx.font = `${Math.min(cardW * 0.55, 10)}px serif`;
+                    ctx.textAlign = "center";
+                    ctx.fillText(
+                      POEMS[poemId].kimari.slice(0, 2),
+                      cx + cardW / 2,
+                      drawY + cardH * 0.55,
+                    );
+                  }
+                }
+                // Draw result symbol
+                const res = resultMap[poemId];
+                if (res) drawResultSymbol(ctx, cx, drawY, cardW, cardH, res);
+              } else {
+                // Empty slot
+                ctx.strokeStyle = "rgba(180,140,60,0.18)";
+                ctx.setLineDash([2, 2]);
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cx + 0.5, drawY + 0.5, cardW - 1, cardH - 1);
+                ctx.setLineDash([]);
+              }
+              x += cardW + gap;
+            }
+            y += cardH + gap;
+          }
+        };
+
+        // Draw enemy field (top, rotated 180°)
+        drawField(gameState.initEnemySlots, pad, "敵　陣", true);
+
+        // Draw self field (bottom, normal)
+        const selfTop = pad + labelH + 3 * (cardH + gap) - gap + fieldGap;
+        drawField(gameState.initSelfSlots, selfTop, "自　陣", false);
+      }
+
+      function drawResultSymbol(ctx, x, y, w, h, result) {
+        const cx = x + w / 2,
+          cy = y + h / 2;
+        const r = Math.min(w, h) * 0.32;
+        ctx.lineWidth = Math.max(1.5, r * 0.22);
+        if (result === "correct") {
+          ctx.strokeStyle = "rgba(40,220,60,0.92)";
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (result === "wrong") {
+          ctx.strokeStyle = "rgba(220,40,40,0.92)";
+          const d = r * 0.72;
+          ctx.beginPath();
+          ctx.moveTo(cx - d, cy - d);
+          ctx.lineTo(cx + d, cy + d);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cx + d, cy - d);
+          ctx.lineTo(cx - d, cy + d);
+          ctx.stroke();
+        } else if (result === "missed") {
+          ctx.strokeStyle = "rgba(220,160,20,0.92)";
+          const d = r * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - d);
+          ctx.lineTo(cx + d * 0.87, cy + d * 0.5);
+          ctx.lineTo(cx - d * 0.87, cy + d * 0.5);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+
+      $("btn-play-again").addEventListener("click", () => {
+        showScreen("setup");
+        gameState.phase = "setup";
+      });
+
+      $("btn-save-img").addEventListener("click", generateResultImage);
+
+      $("btn-share-x").addEventListener("click", () => {
+        const r = gameState.results;
+        const correct = r.filter((x) => x.result === "correct").length;
+        const total = r.length;
+        const rate = total ? Math.round((correct / total) * 100) : 0;
+        const score = calcScore(r);
+        const text = `競技かるた暗記訓練 結果\n${total}枚中${correct}枚正解（${rate}%）\n正解:${correct} / ミス:${r.filter((x) => x.result === "wrong").length} / 見逃し:${r.filter((x) => x.result === "missed").length} / お手つき:${r.filter((x) => x.result === "foul").length}\nスコア:${score}点\n#競技かるた #百人一首`;
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+          "_blank",
+        );
+      });
+
+      $("btn-share-line").addEventListener("click", () => {
+        const r = gameState.results;
+        const correct = r.filter((x) => x.result === "correct").length;
+        const total = r.length;
+        const text = `競技かるた暗記訓練 結果\n${total}枚中${correct}枚正解！\n#競技かるた`;
+        window.open(
+          `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`,
+          "_blank",
+        );
+      });
+
+      // ======================================================
+      // RESULT IMAGE GENERATION
+      // ======================================================
+      async function generateResultImage() {
+        const now = new Date();
+        const results = gameState.results;
+        const correct = results.filter((r) => r.result === "correct").length;
+        const wrong = results.filter((r) => r.result === "wrong").length;
+        const missed = results.filter((r) => r.result === "missed").length;
+        const foul = results.filter((r) => r.result === "foul").length;
+        const score = calcScore(results);
+        const patNames = {
+          A: "両陣ランダム・ちらし",
+          B: "両陣ランダム・端寄せ",
+          C: "敵陣ちらし＋自陣手動",
+          D: "敵陣端寄せ＋自陣手動",
+          E: "全手動",
+        };
+
+        // Build board section using same logic as drawBoardResultCanvas but on a new canvas
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const numCols = 16;
+        const pad = 6;
+        const gap = 2;
+        const boardW = 640;
+        const cardW = Math.floor(
+          (boardW - 2 * pad - (numCols - 1) * gap) / numCols,
+        );
+        const cardH = Math.round(cardW * 1.5);
+        const labelH = 14;
+        const fieldGap = 8;
+        const boardH =
+          2 * (labelH + 3 * (cardH + gap) - gap) + fieldGap + 2 * pad;
+
+        // Header section height
+        const headerH = 130;
+        const totalW = boardW;
+        const totalH = headerH + boardH + 20;
+
+        const canvas = $("result-canvas");
+        canvas.width = totalW * dpr;
+        canvas.height = totalH * dpr;
+        canvas.style.width = totalW + "px";
+        canvas.style.height = totalH + "px";
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+
+        // Background
+        ctx.fillStyle = "#1a120a";
+        ctx.fillRect(0, 0, totalW, totalH);
+        ctx.strokeStyle = "#6a4a18";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(6, 6, totalW - 12, totalH - 12);
+
+        // Title
+        ctx.fillStyle = "#f0d89a";
+        ctx.font = "bold 18px serif";
+        ctx.textAlign = "center";
+        ctx.fillText("競技かるた 暗記訓練 結果", totalW / 2, 28);
+
+        ctx.font = "10px serif";
+        ctx.fillStyle = "#7a5a30";
+        ctx.fillText(
+          `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ｜ ${patNames[gameState.pattern] || ""} ｜ 暗記${gameState.timerMinutes}分 ｜ ${gameState.readMode === "all100" ? "100枚読み" : "出札のみ"}`,
+          totalW / 2,
+          44,
+        );
+
+        // Score summary
+        const cols = [
+          { label: "正解", val: correct, color: "#60d060" },
+          { label: "ミス", val: wrong, color: "#e06060" },
+          { label: "見逃し", val: missed, color: "#e0a030" },
+          { label: "お手つき", val: foul, color: "#c060e0" },
+        ];
+        cols.forEach((c, i) => {
+          const x = 90 + i * 130;
+          ctx.font = "bold 26px serif";
+          ctx.fillStyle = c.color;
+          ctx.textAlign = "center";
+          ctx.fillText(c.val, x, 82);
+          ctx.font = "10px serif";
+          ctx.fillStyle = "#907050";
+          ctx.fillText(c.label, x, 96);
+        });
+        ctx.font = "bold 30px serif";
+        ctx.fillStyle = score >= 0 ? "#f0c060" : "#e06060";
+        ctx.textAlign = "center";
+        ctx.fillText(`${score}点`, totalW - 80, 88);
+        ctx.font = "10px serif";
+        ctx.fillStyle = "#907050";
+        ctx.fillText("スコア", totalW - 80, 102);
+
+        // Divider
+        ctx.strokeStyle = "#4a3010";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(20, 110);
+        ctx.lineTo(totalW - 20, 110);
+        ctx.stroke();
+
+        // Pre-load images (await so symbols are drawn on top of card images)
+        const allIds = [...gameState.initPlacedSet];
+        const imgCache = {};
+        await Promise.allSettled(
+          allIds.map(
+            (id) =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  imgCache[id] = img;
+                  resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = `public/images/torifuda/torifuda_F_${id}.jpeg`;
+              }),
+          ),
+        );
+
+        // Build result map
+        const resultMap = {};
+        results.forEach((r) => {
+          resultMap[r.poemId] = r.result;
+        });
+
+        // Draw field function (reused from drawBoardResultCanvas)
+        const drawField = (slots, yTop, label, flipCards) => {
+          ctx.fillStyle = "#b89060";
+          ctx.font = `${labelH - 2}px serif`;
+          ctx.textAlign = "left";
+          ctx.fillText(label, pad, yTop + labelH - 3);
+          let y = yTop + labelH;
+          for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+            let x = pad;
+            const rowStart = rowIdx * 16;
+            for (let col = 0; col < 16; col++) {
+              const poemId = slots[rowStart + col];
+              if (poemId) {
+                if (flipCards) {
+                  ctx.save();
+                  ctx.translate(x + cardW / 2, y + cardH / 2);
+                  ctx.rotate(Math.PI);
+                  if (imgCache[poemId])
+                    ctx.drawImage(
+                      imgCache[poemId],
+                      -cardW / 2,
+                      -cardH / 2,
+                      cardW,
+                      cardH,
+                    );
+                  else {
+                    ctx.fillStyle = "#7a4a10";
+                    ctx.fillRect(-cardW / 2, -cardH / 2, cardW, cardH);
+                  }
+                  ctx.restore();
+                } else {
+                  if (imgCache[poemId])
+                    ctx.drawImage(imgCache[poemId], x, y, cardW, cardH);
+                  else {
+                    ctx.fillStyle = "#7a4a10";
+                    ctx.fillRect(x, y, cardW, cardH);
+                  }
+                }
+                const res = resultMap[poemId];
+                if (res) drawResultSymbol(ctx, x, y, cardW, cardH, res);
+              } else {
+                ctx.strokeStyle = "rgba(180,140,60,0.15)";
+                ctx.setLineDash([2, 2]);
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 0.5, y + 0.5, cardW - 1, cardH - 1);
+                ctx.setLineDash([]);
+              }
+              x += cardW + gap;
+            }
+            y += cardH + gap;
+          }
+        };
+
+        const boardTop = headerH + 10;
+        drawField(gameState.initEnemySlots, boardTop, "敵　陣", true);
+        const selfTop = boardTop + labelH + 3 * (cardH + gap) - gap + fieldGap;
+        drawField(gameState.initSelfSlots, selfTop, "自　陣", false);
+
+        // Footer text
+        ctx.fillStyle = "#604020";
+        ctx.font = "9px serif";
+        ctx.textAlign = "center";
+        ctx.fillText("競技かるた暗記訓練", totalW / 2, totalH - 8);
+
+        // Show preview
+        $("img-preview-overlay").classList.add("visible");
+
+        try {
+          const link = document.createElement("a");
+          link.download = `karuta-result-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } catch (e) {}
+      }
+
+      $("img-preview-close").addEventListener("click", () => {
+        $("img-preview-overlay").classList.remove("visible");
+      });
+
+      // ======================================================
+      // MODAL EVENTS
+      // ======================================================
+      $("modal-close").addEventListener("click", closeModal);
+      $("modal-overlay").addEventListener("click", (e) => {
+        if (e.target === dom.modal) closeModal();
+      });
+      dom.modalSearch.addEventListener("input", (e) =>
+        filterModal(e.target.value),
+      );
+
+      // ======================================================
+      // WINDOW RESIZE
+      // ======================================================
+      window.addEventListener("resize", () => {
+        if (
+          gameState.phase === "arrange" ||
+          gameState.phase === "memorize" ||
+          gameState.phase === "play"
+        ) {
+          calcCardSize();
+          // Update all slot sizes
+          document.querySelectorAll(".card-slot").forEach((el) => {
+            el.style.width = CARD_W + "px";
+            el.style.height = CARD_H + "px";
+          });
+          document.querySelectorAll(".pool-card").forEach((el) => {
+            // pool cards stay fixed
+          });
+        }
+      });
+
+      // ======================================================
+      // INITIALIZE
+      // ======================================================
+      document.addEventListener("DOMContentLoaded", () => {
+        initSetup();
+      });
+    </script>
+  </body>
+</html>

@@ -526,19 +526,42 @@
         flex-shrink: 0;
         background: #140e04;
         border-top: 1px solid #4a3010;
-        padding: 6px 8px;
+        padding: 4px 8px 6px;
         overflow: hidden;
         display: none;
-        height: 80px;
+        height: 88px;
       }
       #card-pool-area.visible {
         display: block;
+      }
+      #pool-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
       }
       #pool-label {
         font-size: 10px;
         color: #806040;
         letter-spacing: 0.1em;
-        margin-bottom: 4px;
+      }
+      #pool-nav-btns {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      #pool-prev, #pool-next {
+        padding: 1px 7px;
+        background: rgba(80, 50, 10, 0.5);
+        border: 1px solid #5a3a10;
+        color: #c8a870;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        line-height: 1.4;
+      }
+      #pool-prev:active, #pool-next:active {
+        background: #7a4a10;
       }
       #pool-cards {
         display: flex;
@@ -958,6 +981,44 @@
       }
 
       /* ======= RESPONSIVE ======= */
+      @media (max-width: 520px) {
+        #game-footer {
+          flex-wrap: wrap;
+          min-height: auto;
+          padding: 5px 8px;
+          gap: 5px;
+          align-items: center;
+          justify-content: center;
+        }
+        #arrange-timer-row {
+          width: 100%;
+          justify-content: center;
+          flex-wrap: wrap;
+          order: 1;
+        }
+        #btn-start-memorize {
+          order: 2;
+          font-size: 14px;
+          padding: 8px 18px;
+        }
+        #arrange-progress-footer {
+          order: 3;
+          width: 100%;
+          text-align: center;
+          font-size: 10px;
+        }
+        #arr-timer-label {
+          font-size: 10px;
+        }
+        .arr-preset {
+          font-size: 10px;
+          padding: 3px 6px;
+        }
+        #arr-custom-min {
+          width: 30px;
+          font-size: 10px;
+        }
+      }
       @media (max-height: 500px) {
         #game-header {
           min-height: 40px;
@@ -1429,7 +1490,13 @@
 
       <!-- Card pool (arrange mode) -->
       <div id="card-pool-area">
-        <div id="pool-label">未配置の札（タップまたはドラッグで配置）</div>
+        <div id="pool-header-row">
+          <span id="pool-label">未配置の札（タップまたはドラッグで配置）</span>
+          <div id="pool-nav-btns">
+            <button id="pool-prev">◀</button>
+            <button id="pool-next">▶</button>
+          </div>
+        </div>
         <div id="pool-cards"></div>
       </div>
 
@@ -1534,27 +1601,49 @@
           読み方を選んでください
         </div>
 
-        <!-- 詰めオプション -->
-        <label
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #c0a060;
-            margin-bottom: 18px;
-            cursor: pointer;
-            user-select: none;
-          "
-        >
-          <input
-            type="checkbox"
-            id="compact-toggle"
-            style="width: 16px; height: 16px; accent-color: #c0a060; cursor: pointer;"
-          />
-          出札の位置を端に詰める
-        </label>
+        <!-- オプション群 -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;">
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              font-size: 13px;
+              color: #c0a060;
+              cursor: pointer;
+              user-select: none;
+            "
+          >
+            <input
+              type="checkbox"
+              id="compact-toggle"
+              checked
+              style="width: 16px; height: 16px; accent-color: #c0a060; cursor: pointer;"
+            />
+            出札の位置を端に詰める
+          </label>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              font-size: 13px;
+              color: #c0a060;
+              cursor: pointer;
+              user-select: none;
+            "
+          >
+            <input
+              type="checkbox"
+              id="audio-toggle"
+              checked
+              style="width: 16px; height: 16px; accent-color: #c0a060; cursor: pointer;"
+            />
+            🔊 音声あり
+          </label>
+        </div>
 
         <div style="display: flex; flex-direction: column; gap: 10px">
           <!-- 100枚全て（デフォルト・目立つ） -->
@@ -2224,6 +2313,7 @@
         waitingForTap: false,
         currentReadingId: null,
         compactCards: false,       // 出札位置を端に詰めるかどうか
+        audioEnabled: true,        // 音声ON/OFF
         arrangeStartTime: null,    // timestamp when arrange phase begins
         memorizeStartTime: null,   // timestamp when memorize phase begins
         actualMemorizeSecs: 0,     // actual seconds spent in memorize phase
@@ -3140,7 +3230,7 @@
         const done = gameState.results.filter(
           (r) => r.result !== "foul" || true,
         ).length;
-        dom.scoreDisplay.textContent = `${score}点 / ${done}/${total}枚`;
+        dom.scoreDisplay.textContent = `${done}/${total}枚`;
         dom.playInfo.textContent = `現在 ${score} 点`;
         const selfLeft = gameState.selfSlots.filter(Boolean).length;
         const enemyLeft = gameState.enemySlots.filter(Boolean).length;
@@ -3153,11 +3243,17 @@
         setPoemIndicatorStatic("序歌を読み上げ中...（読み飛ばし可）");
 
         const onJoukaDone = () => {
-          if (!gameState.joukaPlaying) return; // already skipped
+          if (!gameState.joukaPlaying) return;
           gameState.joukaPlaying = false;
           gameState.joukaAudio = null;
           startReadingPoems();
         };
+
+        // 音声OFFの場合は即スキップ
+        if (!gameState.audioEnabled) {
+          setTimeout(onJoukaDone, 500);
+          return;
+        }
 
         const audio1 = new Audio(AUDIO_URL(0, 1));
         gameState.joukaAudio = audio1;
@@ -3217,6 +3313,18 @@
         }
 
         setPoemIndicatorScroll(poem.text);
+
+        // 音声OFFの場合: タップ待ち状態にして5秒後に自動見逃し
+        if (!gameState.audioEnabled) {
+          gameState.waitingForTap = true;
+          gameState.readingStartTime = Date.now();
+          setTimeout(() => {
+            if (gameState.waitingForTap && gameState.currentReadingId === poemId) {
+              processMissed(poemId);
+            }
+          }, 5000);
+          return;
+        }
 
         // Play upper verse
         const upper = new Audio(AUDIO_URL(poemId, 1));
@@ -3283,6 +3391,11 @@
             startReadingPoems();
           }, 700);
         };
+        // 音声OFFの場合: 1秒後に自動進行
+        if (!gameState.audioEnabled) {
+          setTimeout(advance, 1000);
+          return;
+        }
         const upper = new Audio(AUDIO_URL(poemId, 1));
         gameState.upperAudio = upper; // stopCurrentAudio() で停止可能にする
         upper.onerror = () => setTimeout(advance, 1500);
@@ -3704,12 +3817,14 @@
         $("readmode-overlay").style.display = "none";
         gameState.readMode = "placed";
         gameState.compactCards = $("compact-toggle").checked;
+        gameState.audioEnabled = $("audio-toggle").checked;
         startPlay();
       });
       $("btn-readmode-all").addEventListener("click", () => {
         $("readmode-overlay").style.display = "none";
         gameState.readMode = "all100";
         gameState.compactCards = $("compact-toggle").checked;
+        gameState.audioEnabled = $("audio-toggle").checked;
         startPlay();
       });
 
@@ -4027,8 +4142,12 @@
         const canvas = $("result-canvas");
         canvas.width = totalW * dpr;
         canvas.height = totalH * dpr;
-        canvas.style.width = totalW + "px";
-        canvas.style.height = totalH + "px";
+        // Compute display size that fits screen while preserving aspect ratio
+        const maxDispW = window.innerWidth * 0.9;
+        const maxDispH = window.innerHeight * 0.7;
+        const dispScale = Math.min(maxDispW / totalW, maxDispH / totalH, 1);
+        canvas.style.width = Math.round(totalW * dispScale) + "px";
+        canvas.style.height = Math.round(totalH * dispScale) + "px";
         const ctx = canvas.getContext("2d");
         ctx.scale(dpr, dpr);
 
@@ -4187,6 +4306,16 @@
 
       $("img-preview-close").addEventListener("click", () => {
         $("img-preview-overlay").classList.remove("visible");
+      });
+
+      // ======================================================
+      // POOL SCROLL BUTTONS
+      // ======================================================
+      $("pool-prev").addEventListener("click", () => {
+        dom.poolCards.scrollBy({ left: -160, behavior: "smooth" });
+      });
+      $("pool-next").addEventListener("click", () => {
+        dom.poolCards.scrollBy({ left: 160, behavior: "smooth" });
       });
 
       // ======================================================

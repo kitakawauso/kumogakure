@@ -18,12 +18,23 @@
         user-select: none;
         -webkit-user-select: none;
       }
-      html,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #1a120a;
+        font-family:
+          "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+        color: #f5ede0;
+      }
       body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
+        height: -webkit-fill-available;
+        height: 100dvh;
         overflow: hidden;
         background: #1a120a;
         font-family:
@@ -33,11 +44,12 @@
 
       /* ======= SCREENS ======= */
       .screen {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
+        height: 100dvh;
         display: none;
         flex-direction: column;
         align-items: center;
@@ -688,11 +700,13 @@
       }
       #modal-grid {
         flex: 1;
+        min-height: 0; /* flexboxでスクロールを有効にするために必須 */
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         padding: 10px;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-        gap: 5px;
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 6px;
         scrollbar-width: thin;
         scrollbar-color: #5a3a10 #1a0e04;
       }
@@ -707,12 +721,12 @@
         border-radius: 3px;
       }
       .modal-kimari-btn {
-        padding: 7px 4px;
+        padding: 8px 4px;
         background: rgba(80, 50, 10, 0.5);
         border: 1.5px solid #6a4a18;
         border-radius: 6px;
         color: #f0d890;
-        font-size: 13px;
+        font-size: 14px;
         font-family: inherit;
         letter-spacing: 0.04em;
         cursor: pointer;
@@ -1037,6 +1051,45 @@
         .pool-card {
           width: 30px;
           height: 44px;
+        }
+      }
+      /* 横画面 (landscape) */
+      @media (orientation: landscape) and (max-height: 500px) {
+        #game-header {
+          min-height: 36px;
+          padding: 3px 10px;
+        }
+        #game-footer {
+          min-height: 44px;
+          padding: 4px 10px;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+        #arrange-timer-row {
+          width: 100%;
+          justify-content: center;
+          order: 1;
+        }
+        #btn-start-memorize {
+          order: 2;
+          font-size: 13px;
+          padding: 6px 14px;
+        }
+        #arrange-progress-footer {
+          order: 3;
+          width: 100%;
+          text-align: center;
+          font-size: 10px;
+        }
+        #card-pool-area {
+          height: 62px;
+        }
+        #pool-cards {
+          height: 42px;
+        }
+        .pool-card {
+          width: 28px;
+          height: 42px;
         }
       }
     </style>
@@ -2269,24 +2322,31 @@
       function calcCardSize() {
         const vw = window.innerWidth,
           vh = window.innerHeight;
-        const poolH = gameState.phase === "arrange" ? 80 : 0;
+        const isLandscape = vw > vh;
+        const poolH = gameState.phase === "arrange" ? 88 : 0;
         const headerH = 54,
-          footerH = 58;
+          footerH = isLandscape ? 44 : 58;
         // Total board area height
-        const boardH = vh - headerH - footerH - poolH - 8; // 8 = board padding top+bottom
+        const boardH = vh - headerH - footerH - poolH - 8;
         // Card width from full-width row: (vw - padding - gaps) / 16 cols
         const byWidth = Math.floor(
           (vw - 12 - (ROW_SIZES[0] - 1) * 3) / ROW_SIZES[0],
         );
-        // Card height: fit 6 rows (3 per field) + 2 label rows + divider
-        const labelRows = 2 * 18; // two field label rows
-        const gaps = 2 * (ROW_SIZES.length - 1) * 3; // gap between rows, each field
-        const divider = 10;
-        const cardAreaH = boardH - labelRows - gaps - divider;
-        const totalCardRows = ROW_SIZES.length * 2; // 6 rows total
-        const byHeight = Math.floor(cardAreaH / totalCardRows);
-        const rawW = Math.min(byWidth, Math.round((byHeight * 2) / 3));
-        CARD_W = Math.max(16, Math.min(66, rawW));
+        if (isLandscape) {
+          // 横画面: 幅優先でサイズ計算し、ボードは縦スクロール許容
+          const rawW = Math.min(byWidth, 52);
+          CARD_W = Math.max(28, rawW);
+        } else {
+          // 縦画面: 6行を画面内に収める高さ優先
+          const labelRows = 2 * 18;
+          const gaps = 2 * (ROW_SIZES.length - 1) * 3;
+          const divider = 10;
+          const cardAreaH = boardH - labelRows - gaps - divider;
+          const totalCardRows = ROW_SIZES.length * 2;
+          const byHeight = Math.floor(cardAreaH / totalCardRows);
+          const rawW = Math.min(byWidth, Math.round((byHeight * 2) / 3));
+          CARD_W = Math.max(16, Math.min(66, rawW));
+        }
         CARD_H = Math.round(CARD_W * 1.5);
       }
 
@@ -3003,7 +3063,8 @@
               const now = Date.now();
               if (now - _lastTapTime < 350) {
                 // Double-tap: delete card
-                _lastTapTime = 0;
+                // nowをセットしてシングルタップのタイマーがモーダルを開かないよう抑制
+                _lastTapTime = now;
                 removeCardFromArrangeSlot(parseInt(slotEl.dataset.poemId));
               } else {
                 _lastTapTime = now;
